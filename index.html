@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clinical Engineering Command Center</title>
+<meta name="description" content="Clinical Engineering performance dashboard demo (sample data) — PM compliance, uptime, COSR, capital replacement and CMMS data quality.">
+<style>
+:root{
+ --font-anthropic-sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+ --font-anthropic-serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+ --cds-font-size-caption:12px;--cds-font-size-body:14px;--cds-font-size-heading:16px;--cds-font-size-title:30px;
+ --cds-font-weight-medium:550;
+ --cds-gap-xs:4px;--cds-gap-sm:8px;--cds-gap-md:14px;--cds-gap-lg:20px;--cds-gap-xl:32px;
+ --cds-pad-xs:4px;--cds-pad-sm:8px;--cds-pad-md:12px;--cds-pad-lg:18px;--cds-pad-xl:28px;
+ --cds-radius:8px;--cds-dur-slow:450ms;--cds-ease-out:cubic-bezier(.2,.8,.2,1);
+ --color-fg:#1f1e1c;--color-fg-muted:#6d6a63;--color-bg:#f7f6f2;--color-panel:#ffffff;--color-border-line:#e4e1d8;
+ --color-ok:#2c7a4b;--color-warn:#a5630a;--color-bad:#c2372c;
+ --cds-chart-grid:#ecE9e1;--cds-chart-axis:#c8c4b9;--cds-chart-reference:#8b877e;--cds-chart-muted:#cfcbc0;
+ --cds-chart-status-critical:#d4463a;--cds-surface-popover:#ffffff;--cds-border:#dcd8ce;
+ --cds-shadow-popover:0 6px 20px rgba(0,0,0,.12);--cds-text-secondary:#6d6a63;
+}
+@media (prefers-color-scheme:dark){:root{
+ --color-fg:#ecebe6;--color-fg-muted:#a3a097;--color-bg:#151514;--color-panel:#1f1f1d;--color-border-line:#33322e;
+ --color-ok:#5fc98a;--color-warn:#e3a54a;--color-bad:#f0776c;
+ --cds-chart-grid:#2c2b28;--cds-chart-axis:#4a4843;--cds-chart-reference:#8d8a81;--cds-chart-muted:#4f4d47;
+ --cds-chart-status-critical:#f06a5e;--cds-surface-popover:#262624;--cds-border:#3b3a36;
+ --cds-shadow-popover:0 6px 20px rgba(0,0,0,.5);--cds-text-secondary:#a3a097;
+}}
+html,body{margin:0;background:var(--color-bg)}
+#dash-root{max-width:1280px;margin:0 auto;padding:clamp(16px,3vw,40px)}
+.dash-skeleton{color:transparent!important}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>window.__CSV__ = {"monthly": "month,site,assets,acq_value,pm_scheduled,pm_on_time,pm_late,ls_pm_scheduled,ls_pm_completed,cm_opened,cm_closed,backlog_end,median_tat_hrs,repeat_fail_30d,imaging_uptime_pct,service_cost\n2025-11,Evanston,7400,182000000.0,579,550,20,54,54,152,153,87,22.5,9,98.41,732154.0\n2025-12,Evanston,7400,182000000.0,536,506,20,49,49,151,152,86,21.0,11,97.93,751083.0\n2026-01,Evanston,7400,182000000.0,541,514,20,48,48,151,154,83,20.5,9,98.23,730609.0\n2026-02,Evanston,7400,182000000.0,549,523,20,52,52,157,161,79,20.1,7,98.32,668722.0\n2026-03,Evanston,7400,182000000.0,606,588,12,55,55,154,159,74,18.7,8,99.25,681637.0\n2026-04,Evanston,7400,182000000.0,561,546,9,51,51,165,166,73,18.1,10,98.28,671217.0\n2026-05,Evanston,7400,182000000.0,548,533,11,47,46,168,166,75,22.1,8,99.03,670211.0\n2026-06,Evanston,7400,182000000.0,541,528,7,48,48,160,161,74,21.3,9,98.98,724098.0\n2026-07,Evanston,7400,182000000.0,577,554,17,51,51,149,154,69,15.2,6,98.76,666765.0\n2026-08,Evanston,7400,182000000.0,594,579,10,57,57,145,146,68,18.1,8,98.15,739407.0\n2026-09,Evanston,7400,182000000.0,600,589,6,52,52,151,159,60,15.0,9,98.74,725245.0\n2026-10,Evanston,7400,182000000.0,588,580,5,52,52,150,158,52,18.1,7,98.29,699819.0\n2025-11,Skokie,5200,131000000.0,375,350,18,35,35,107,105,64,22.2,7,97.65,593030.0\n2025-12,Skokie,5200,131000000.0,384,361,16,38,38,101,101,64,18.3,5,97.67,533369.0\n2026-01,Skokie,5200,131000000.0,414,388,20,38,38,102,104,62,19.7,6,98.62,523372.0\n2026-02,Skokie,5200,131000000.0,408,385,13,37,37,113,111,64,21.1,6,97.59,565947.0\n2026-03,Skokie,5200,131000000.0,388,372,10,33,33,121,119,66,19.5,8,97.86,533188.0\n2026-04,Skokie,5200,131000000.0,411,393,13,36,36,115,113,68,19.1,5,98.49,559715.0\n2026-05,Skokie,5200,131000000.0,385,367,13,33,31,113,115,66,18.1,5,98.76,542993.0\n2026-06,Skokie,5200,131000000.0,421,400,13,41,41,116,120,62,21.0,6,97.79,532417.0\n2026-07,Skokie,5200,131000000.0,381,370,7,34,34,108,111,59,20.4,5,97.68,542995.0\n2026-08,Skokie,5200,131000000.0,380,367,9,35,35,110,110,59,17.4,6,98.6,551629.0\n2026-09,Skokie,5200,131000000.0,392,376,10,38,38,108,111,56,18.6,7,98.72,521450.0\n2026-10,Skokie,5200,131000000.0,401,383,11,36,36,100,106,50,18.5,5,98.86,520905.0\n2025-11,Glenbrook,4600,109000000.0,334,325,5,31,31,95,93,57,19.5,6,98.93,385004.0\n2025-12,Glenbrook,4600,109000000.0,367,350,12,36,36,98,95,60,17.6,5,98.93,348178.0\n2026-01,Glenbrook,4600,109000000.0,358,344,10,31,31,100,98,62,19.0,6,98.14,354959.0\n2026-02,Glenbrook,4600,109000000.0,375,366,5,32,32,105,108,59,19.5,7,98.13,385548.0\n2026-03,Glenbrook,4600,109000000.0,376,362,10,35,35,107,109,57,19.2,7,98.75,351617.0\n2026-04,Glenbrook,4600,109000000.0,352,346,4,30,30,99,102,54,19.0,7,98.42,364561.0\n2026-05,Glenbrook,4600,109000000.0,339,332,4,29,29,101,102,53,23.5,6,99.03,360508.0\n2026-06,Glenbrook,4600,109000000.0,354,350,2,31,31,99,103,49,16.6,6,99.18,389015.0\n2026-07,Glenbrook,4600,109000000.0,357,347,6,31,31,93,95,47,15.6,5,99.25,385393.0\n2026-08,Glenbrook,4600,109000000.0,349,345,3,30,30,98,100,45,21.0,5,98.12,376443.0\n2026-09,Glenbrook,4600,109000000.0,361,355,3,35,35,88,90,43,19.3,6,98.92,366201.0\n2026-10,Glenbrook,4600,109000000.0,376,369,4,35,35,87,88,42,16.1,4,99.12,386052.0\n2025-11,Highland Park,4300,98000000.0,339,312,19,33,32,81,79,53,23.3,5,97.94,429319.0\n2025-12,Highland Park,4300,98000000.0,326,303,13,28,28,92,94,51,21.8,7,98.57,460562.0\n2026-01,Highland Park,4300,98000000.0,333,311,12,30,30,93,92,52,21.5,6,97.95,428311.0\n2026-02,Highland Park,4300,98000000.0,334,308,15,32,32,91,93,50,21.7,7,97.68,465131.0\n2026-03,Highland Park,4300,98000000.0,331,311,13,30,30,92,90,52,22.1,6,98.6,436629.0\n2026-04,Highland Park,4300,98000000.0,317,303,9,30,27,90,89,53,21.9,5,98.68,436030.0\n2026-05,Highland Park,4300,98000000.0,337,320,12,31,31,89,91,51,22.3,6,97.72,429275.0\n2026-06,Highland Park,4300,98000000.0,341,321,11,33,33,95,95,51,20.4,5,98.53,443402.0\n2026-07,Highland Park,4300,98000000.0,328,315,8,29,29,86,86,51,23.7,4,98.69,434206.0\n2026-08,Highland Park,4300,98000000.0,309,293,12,26,26,88,92,47,20.4,5,97.89,413372.0\n2026-09,Highland Park,4300,98000000.0,350,333,11,29,29,88,89,46,21.5,6,98.73,430567.0\n2026-10,Highland Park,4300,98000000.0,315,301,9,28,28,82,83,45,23.6,4,98.45,424119.0\n2025-11,Swedish,4900,104000000.0,372,347,19,35,35,99,101,56,23.2,6,97.91,474070.0\n2025-12,Swedish,4900,104000000.0,394,355,21,34,34,99,96,59,26.4,5,98.02,519665.0\n2026-01,Swedish,4900,104000000.0,391,358,22,38,36,106,106,59,27.0,6,98.38,521146.0\n2026-02,Swedish,4900,104000000.0,384,360,17,32,32,107,105,61,27.5,6,98.57,497359.0\n2026-03,Swedish,4900,104000000.0,357,337,13,32,30,105,109,57,22.0,8,97.71,484167.0\n2026-04,Swedish,4900,104000000.0,390,362,20,36,36,114,114,57,21.1,7,98.52,469085.0\n2026-05,Swedish,4900,104000000.0,381,357,13,33,33,113,117,53,21.8,8,98.57,502011.0\n2026-06,Swedish,4900,104000000.0,376,349,21,32,32,108,108,53,20.6,6,98.77,532332.0\n2026-07,Swedish,4900,104000000.0,380,362,11,32,32,99,103,49,19.8,8,97.98,515193.0\n2026-08,Swedish,4900,104000000.0,398,379,12,39,38,96,100,45,24.5,7,98.14,506462.0\n2026-09,Swedish,4900,104000000.0,399,378,16,37,37,93,96,42,24.2,5,98.77,520491.0\n2026-10,Swedish,4900,104000000.0,360,341,11,32,32,97,101,38,19.2,5,98.21,479961.0\n2025-11,Northwest Comm.,6100,151000000.0,459,431,15,41,41,125,126,72,22.4,6,98.3,634302.0\n2025-12,Northwest Comm.,6100,151000000.0,497,468,17,42,42,121,124,69,16.7,7,98.5,590904.0\n2026-01,Northwest Comm.,6100,151000000.0,458,429,20,44,44,124,123,70,20.1,8,98.27,596075.0\n2026-02,Northwest Comm.,6100,151000000.0,465,445,14,44,44,139,142,67,20.2,6,97.54,648771.0\n2026-03,Northwest Comm.,6100,151000000.0,478,464,10,42,42,132,135,64,18.1,6,98.14,593764.0\n2026-04,Northwest Comm.,6100,151000000.0,480,458,12,42,42,130,132,62,24.1,9,98.68,596458.0\n2026-05,Northwest Comm.,6100,151000000.0,488,475,7,45,45,137,139,60,18.7,6,98.61,610771.0\n2026-06,Northwest Comm.,6100,151000000.0,461,450,6,45,45,135,138,57,17.9,8,98.58,589812.0\n2026-07,Northwest Comm.,6100,151000000.0,439,423,10,37,37,123,128,52,19.1,9,97.65,635394.0\n2026-08,Northwest Comm.,6100,151000000.0,489,478,8,42,41,129,136,45,20.7,7,98.27,635069.0\n2026-09,Northwest Comm.,6100,151000000.0,454,445,5,43,43,115,117,43,15.6,8,98.07,616210.0\n2026-10,Northwest Comm.,6100,151000000.0,449,438,6,39,39,114,117,40,17.2,6,97.69,569997.0\n", "assets": "asset_id,site,device_class,age_yrs,expected_life,condition,utilization,end_of_support,fails_12m,svc_cost_5y,replacement_cost,risk_score\nCE-100827,Evanston,Infusion pump,7.0,10,3,0.49,False,1,1700.0,3300.0,36\nCE-101191,Evanston,Infusion pump,7.0,10,4,0.37,False,1,1700.0,3600.0,29\nCE-102060,Evanston,Infusion pump,12.3,10,3,0.93,True,1,3100.0,4100.0,68\nCE-102302,Evanston,Infusion pump,11.7,10,1,0.91,True,1,2900.0,3700.0,78\nCE-102938,Evanston,Infusion pump,11.9,10,3,0.95,True,7,1300.0,3600.0,79\nCE-103804,Evanston,Physiologic monitor,4.8,8,4,0.37,False,0,4900.0,19900.0,24\nCE-104060,Evanston,Physiologic monitor,5.6,8,3,0.93,False,2,4400.0,16000.0,43\nCE-104543,Evanston,Physiologic monitor,6.1,8,4,0.62,False,4,7200.0,14900.0,40\nCE-105274,Evanston,Physiologic monitor,11.2,8,2,0.51,True,4,9200.0,18200.0,81\nCE-105622,Evanston,Physiologic monitor,8.4,8,3,0.74,True,5,13200.0,21800.0,71\nCE-105733,Evanston,Ventilator,7.8,10,4,0.39,False,3,12100.0,30700.0,36\nCE-106615,Evanston,Ventilator,13.7,10,3,0.58,True,5,28400.0,33700.0,77\nCE-107185,Evanston,Ventilator,7.1,10,3,0.58,False,1,10700.0,30800.0,37\nCE-107204,Evanston,Ventilator,9.1,10,3,0.56,False,1,18800.0,40800.0,41\nCE-107523,Evanston,Ventilator,5.9,10,4,0.5,False,2,4700.0,39400.0,30\nCE-108334,Evanston,Ventilator,11.1,10,3,0.77,False,5,7000.0,32800.0,58\nCE-109065,Evanston,Ventilator,11.0,10,1,0.45,True,4,9200.0,36900.0,79\nCE-109654,Evanston,Anesthesia machine,12.6,12,4,0.65,False,4,14600.0,67200.0,47\nCE-110474,Evanston,Anesthesia machine,9.5,12,4,0.64,False,1,21600.0,66100.0,33\nCE-110516,Evanston,Anesthesia machine,8.7,12,4,0.87,False,1,18100.0,71800.0,34\nCE-110567,Evanston,Anesthesia machine,11.5,12,3,0.66,False,0,19300.0,73800.0,41\nCE-111344,Evanston,Anesthesia machine,9.4,12,3,0.8,False,2,24100.0,70600.0,43\nCE-111963,Evanston,Defibrillator,8.3,8,1,0.74,False,4,3900.0,18900.0,66\nCE-112726,Evanston,Defibrillator,6.7,8,4,0.9,False,1,14200.0,24200.0,37\nCE-112828,Evanston,Defibrillator,6.7,8,3,0.59,False,0,4200.0,19000.0,37\nCE-112901,Evanston,Defibrillator,5.0,8,3,0.43,False,1,6200.0,18800.0,33\nCE-113764,Evanston,Ultrasound,8.1,7,2,0.87,True,2,69500.0,123300.0,74\nCE-114267,Evanston,Ultrasound,5.5,7,3,0.61,False,3,42600.0,73900.0,44\nCE-114599,Evanston,Ultrasound,4.4,7,4,0.49,False,1,48000.0,126400.0,28\nCE-114873,Evanston,Ultrasound,7.0,7,3,0.89,False,2,80200.0,138100.0,49\nCE-114962,Evanston,Ultrasound,8.6,7,2,0.67,True,3,41900.0,65200.0,76\nCE-115673,Evanston,Ultrasound,8.8,7,3,0.74,False,5,65600.0,118400.0,61\nCE-116354,Evanston,Ultrasound,4.4,7,4,0.57,False,1,12100.0,74900.0,29\nCE-116592,Evanston,Portable X-ray,7.4,10,5,0.56,False,2,27200.0,160500.0,28\nCE-116981,Evanston,Portable X-ray,9.4,10,4,0.83,False,4,71400.0,115800.0,46\nCE-117428,Evanston,Portable X-ray,10.2,10,3,0.56,False,5,120100.0,169500.0,54\nCE-117561,Evanston,Portable X-ray,12.3,10,1,0.54,False,5,109300.0,129600.0,71\nCE-118199,Evanston,Portable X-ray,8.5,10,4,0.62,False,3,33800.0,137900.0,40\nCE-118387,Evanston,Portable X-ray,5.7,10,4,0.38,False,1,38800.0,124900.0,26\nCE-118782,Evanston,Portable X-ray,6.9,10,3,0.59,False,2,48100.0,115800.0,39\nCE-119329,Evanston,CT scanner,13.4,10,2,0.7,True,3,858600.0,1039100.0,79\nCE-119516,Evanston,CT scanner,11.4,10,3,0.6,True,1,686100.0,1103600.0,62\nCE-120027,Evanston,CT scanner,11.9,10,3,0.49,True,3,652400.0,1562000.0,67\nCE-120803,Evanston,CT scanner,6.0,10,3,0.81,False,0,510500.0,1508200.0,34\nCE-121701,Evanston,CT scanner,8.6,10,3,0.73,False,3,538700.0,942300.0,47\nCE-121721,Evanston,Surgical table,11.4,15,4,0.86,False,1,16500.0,56700.0,35\nCE-121758,Evanston,Surgical table,17.3,15,2,0.51,False,4,31300.0,58400.0,60\nCE-121847,Evanston,Surgical table,12.2,15,3,0.9,False,0,21800.0,64200.0,40\nCE-121977,Evanston,Surgical table,21.1,15,1,0.54,False,5,37800.0,59200.0,75\nCE-122621,Evanston,ESU,12.4,10,2,0.39,True,3,14100.0,22200.0,73\nCE-122861,Evanston,ESU,10.4,10,3,0.77,False,3,8200.0,24400.0,51\nCE-122882,Evanston,ESU,8.1,10,3,0.46,False,3,8900.0,25300.0,43\nCE-123737,Evanston,ESU,10.4,10,4,0.92,False,4,11400.0,18100.0,49\nCE-124206,Evanston,ESU,8.4,10,3,0.45,False,1,12100.0,28700.0,39\nCE-124663,Evanston,ESU,11.5,10,3,0.37,True,1,11300.0,22600.0,60\nCE-125044,Evanston,Endoscope processor,10.4,8,3,0.6,True,4,40500.0,53800.0,73\nCE-125169,Evanston,Endoscope processor,10.5,8,1,0.77,False,5,17100.0,50300.0,75\nCE-125723,Evanston,Endoscope processor,4.7,8,3,0.49,False,1,19100.0,51600.0,33\nCE-125759,Evanston,Endoscope processor,10.4,8,2,0.9,True,2,37900.0,53800.0,77\nCE-126286,Evanston,Endoscope processor,11.5,8,2,0.51,True,3,46600.0,48600.0,79\nCE-126639,Evanston,Endoscope processor,6.6,8,3,0.62,False,3,18900.0,58600.0,45\nCE-127376,Evanston,Endoscope processor,8.7,8,1,0.58,False,3,23100.0,44300.0,63\nCE-127813,Evanston,Patient bed,11.1,12,3,0.52,False,1,12200.0,22800.0,41\nCE-128401,Evanston,Patient bed,10.6,12,3,0.86,False,3,7400.0,16200.0,49\nCE-128981,Evanston,Patient bed,7.2,12,4,0.5,False,2,5500.0,22700.0,30\nCE-129831,Evanston,Patient bed,17.2,12,1,0.57,True,5,8200.0,13400.0,91\nCE-130323,Evanston,Patient bed,11.4,12,2,0.62,False,3,13900.0,24800.0,54\nCE-130942,Evanston,Patient bed,16.0,12,2,0.83,True,4,12000.0,16000.0,82\nCE-131451,Skokie,Infusion pump,8.6,10,3,0.73,False,3,1400.0,3600.0,47\nCE-131536,Skokie,Infusion pump,11.3,10,2,0.6,True,3,2300.0,3800.0,73\nCE-131744,Skokie,Infusion pump,8.2,10,3,0.88,False,1,2000.0,3700.0,42\nCE-131934,Skokie,Infusion pump,13.6,10,1,0.66,False,5,2700.0,3800.0,75\nCE-132481,Skokie,Infusion pump,11.0,10,4,0.63,True,2,2900.0,3800.0,58\nCE-132729,Skokie,Infusion pump,7.8,10,5,0.54,False,1,700.0,3600.0,26\nCE-133337,Skokie,Infusion pump,10.5,10,3,0.45,False,4,1000.0,4000.0,51\nCE-133734,Skokie,Physiologic monitor,8.6,8,3,0.94,True,4,10600.0,21000.0,71\nCE-133927,Skokie,Physiologic monitor,5.6,8,2,0.76,False,1,2700.0,19000.0,44\nCE-134439,Skokie,Physiologic monitor,6.2,8,3,0.38,False,3,2300.0,16800.0,41\nCE-134804,Skokie,Ventilator,9.5,10,3,0.5,False,4,8000.0,29300.0,49\nCE-135399,Skokie,Ventilator,7.3,10,5,0.85,False,1,12000.0,29500.0,28\nCE-136240,Skokie,Ventilator,10.4,10,3,0.95,False,4,16800.0,34400.0,56\nCE-136303,Skokie,Ventilator,10.2,10,2,0.74,False,0,10300.0,41800.0,49\nCE-136742,Skokie,Ventilator,8.5,10,3,0.81,False,1,9600.0,39100.0,42\nCE-137264,Skokie,Ventilator,11.8,10,2,0.36,True,2,9400.0,34100.0,69\nCE-137644,Skokie,Anesthesia machine,16.1,12,1,0.82,True,3,23600.0,71000.0,86\nCE-137666,Skokie,Anesthesia machine,8.9,12,3,0.37,False,1,16200.0,64200.0,36\nCE-137711,Skokie,Anesthesia machine,7.3,12,4,0.45,False,2,10300.0,70200.0,30\nCE-138223,Skokie,Anesthesia machine,7.8,12,2,0.62,False,0,13100.0,58300.0,39\nCE-138416,Skokie,Anesthesia machine,12.9,12,3,0.93,True,4,51700.0,78600.0,71\nCE-138960,Skokie,Anesthesia machine,12.2,12,2,0.56,False,2,48300.0,79100.0,52\nCE-139354,Skokie,Anesthesia machine,8.1,12,4,0.66,False,0,13500.0,76100.0,28\nCE-139985,Skokie,Defibrillator,9.4,8,2,0.82,False,4,10700.0,19900.0,64\nCE-140297,Skokie,Defibrillator,10.4,8,3,0.5,True,4,15500.0,21800.0,72\nCE-140982,Skokie,Defibrillator,6.2,8,3,0.47,False,2,9200.0,24100.0,40\nCE-141736,Skokie,Defibrillator,11.0,8,1,0.77,True,4,17100.0,25800.0,89\nCE-141997,Skokie,Defibrillator,6.8,8,3,0.75,False,4,9700.0,24600.0,49\nCE-142571,Skokie,Defibrillator,7.0,8,3,0.65,False,2,10300.0,20200.0,44\nCE-142786,Skokie,Ultrasound,9.7,7,2,0.84,True,4,88500.0,136000.0,84\nCE-143054,Skokie,Ultrasound,7.1,7,3,0.6,False,0,46600.0,121300.0,42\nCE-143865,Skokie,Ultrasound,8.7,7,2,0.63,True,2,75300.0,106300.0,73\nCE-143983,Skokie,Ultrasound,3.9,7,4,0.53,False,0,16200.0,127000.0,24\nCE-144856,Skokie,Ultrasound,4.3,7,3,0.52,False,2,51500.0,111800.0,37\nCE-145392,Skokie,Ultrasound,6.9,7,3,0.86,False,1,33500.0,81600.0,46\nCE-145858,Skokie,Ultrasound,8.1,7,2,0.44,False,2,38800.0,83400.0,54\nCE-145875,Skokie,Portable X-ray,10.6,10,2,0.78,False,1,82700.0,143700.0,53\nCE-146274,Skokie,Portable X-ray,11.6,10,2,0.52,False,3,67100.0,121800.0,58\nCE-146938,Skokie,Portable X-ray,7.9,10,3,0.7,False,0,42200.0,158700.0,37\nCE-147470,Skokie,Portable X-ray,7.9,10,3,0.87,False,2,70000.0,153900.0,44\nCE-148134,Skokie,Portable X-ray,10.1,10,4,0.44,False,3,59500.0,117200.0,41\nCE-148849,Skokie,Portable X-ray,12.4,10,2,0.93,True,2,44000.0,172500.0,76\nCE-149159,Skokie,Portable X-ray,5.7,10,3,0.42,False,2,24900.0,168200.0,35\nCE-149721,Skokie,CT scanner,12.4,10,3,0.42,False,1,385700.0,909600.0,48\nCE-150323,Skokie,CT scanner,6.9,10,3,0.63,False,3,455900.0,933900.0,42\nCE-150834,Skokie,CT scanner,6.2,10,4,0.41,False,2,305200.0,941000.0,30\nCE-151214,Skokie,CT scanner,10.9,10,4,0.61,True,4,880200.0,1119700.0,63\nCE-151841,Skokie,CT scanner,12.9,10,2,0.83,True,2,876000.0,1054700.0,76\nCE-152174,Skokie,CT scanner,10.9,10,2,0.38,True,3,556700.0,963800.0,70\nCE-152506,Skokie,CT scanner,8.0,10,4,0.73,False,3,390400.0,1311700.0,39\nCE-153264,Skokie,Surgical table,17.2,15,2,0.68,True,3,41400.0,60000.0,74\nCE-154142,Skokie,Surgical table,13.3,15,4,0.43,False,1,26100.0,67300.0,33\nCE-154520,Skokie,Surgical table,17.6,15,3,0.48,True,2,17100.0,46300.0,64\nCE-154848,Skokie,Surgical table,20.4,15,3,0.81,False,1,51900.0,67800.0,54\nCE-155204,Skokie,Surgical table,19.0,15,3,0.79,False,4,12100.0,44800.0,59\nCE-155493,Skokie,Surgical table,16.3,15,2,0.53,False,2,35200.0,47900.0,54\nCE-156299,Skokie,Surgical table,8.9,15,3,0.58,False,0,20100.0,51200.0,32\nCE-157066,Skokie,ESU,7.7,10,3,0.56,False,3,7800.0,29800.0,43\nCE-157610,Skokie,ESU,6.8,10,4,0.85,False,1,7000.0,20100.0,33\nCE-157758,Skokie,ESU,14.0,10,2,0.72,True,4,12200.0,21500.0,83\nCE-158440,Skokie,ESU,10.1,10,2,0.71,False,2,11800.0,20500.0,54\nCE-158654,Skokie,ESU,7.6,10,4,0.36,False,0,11500.0,21800.0,27\nCE-159298,Skokie,ESU,12.7,10,2,0.72,True,6,7800.0,26000.0,85\nCE-159640,Skokie,Endoscope processor,7.0,8,3,0.55,False,2,19500.0,52300.0,43\nCE-159721,Skokie,Endoscope processor,7.1,8,3,0.62,False,2,25900.0,42200.0,44\nCE-160042,Skokie,Endoscope processor,8.4,8,2,0.69,True,2,32800.0,45600.0,69\nCE-160277,Skokie,Patient bed,13.8,12,3,0.51,False,5,7700.0,23500.0,56\nCE-160283,Skokie,Patient bed,16.3,12,1,0.42,True,3,19800.0,24400.0,82\nCE-161084,Skokie,Patient bed,7.2,12,3,0.36,False,1,3900.0,14300.0,32\nCE-161634,Skokie,Patient bed,14.0,12,2,0.4,True,3,9100.0,22700.0,72\nCE-162437,Skokie,Patient bed,14.4,12,3,0.6,False,3,8600.0,23600.0,54\nCE-162525,Glenbrook,Infusion pump,10.1,10,3,0.56,False,5,2800.0,3700.0,54\nCE-163206,Glenbrook,Infusion pump,9.6,10,3,0.94,False,4,800.0,3300.0,54\nCE-163858,Glenbrook,Infusion pump,12.6,10,2,0.47,False,4,1500.0,3500.0,62\nCE-163880,Glenbrook,Physiologic monitor,6.2,8,4,0.58,False,3,5200.0,20100.0,37\nCE-164138,Glenbrook,Physiologic monitor,10.9,8,2,0.61,True,4,8700.0,20300.0,81\nCE-164309,Glenbrook,Physiologic monitor,11.3,8,1,0.7,True,3,18000.0,20200.0,86\nCE-164318,Glenbrook,Physiologic monitor,10.4,8,3,0.79,False,4,18000.0,18800.0,60\nCE-164804,Glenbrook,Ventilator,14.2,10,2,0.53,True,3,18300.0,33200.0,79\nCE-165602,Glenbrook,Ventilator,11.8,10,2,0.46,True,4,16200.0,36100.0,75\nCE-166280,Glenbrook,Ventilator,12.5,10,2,0.59,True,4,9500.0,41300.0,78\nCE-166804,Glenbrook,Ventilator,13.4,10,1,0.78,True,5,35700.0,36300.0,91\nCE-167460,Glenbrook,Ventilator,13.9,10,2,0.71,True,5,14300.0,31900.0,85\nCE-168092,Glenbrook,Ventilator,11.7,10,2,0.85,True,3,21100.0,32500.0,76\nCE-168441,Glenbrook,Anesthesia machine,12.3,12,2,0.56,False,3,19600.0,74300.0,55\nCE-169157,Glenbrook,Anesthesia machine,8.3,12,3,0.39,False,1,17500.0,78500.0,35\nCE-170007,Glenbrook,Anesthesia machine,15.5,12,2,0.47,True,3,48700.0,67800.0,75\nCE-170577,Glenbrook,Defibrillator,6.2,8,4,0.73,False,6,5500.0,18100.0,46\nCE-171143,Glenbrook,Defibrillator,6.2,8,4,0.53,False,1,3900.0,27000.0,32\nCE-171963,Glenbrook,Defibrillator,6.1,8,4,0.76,False,2,11200.0,24900.0,36\nCE-172389,Glenbrook,Defibrillator,10.4,8,1,0.39,False,2,8200.0,21100.0,63\nCE-172634,Glenbrook,Defibrillator,4.7,8,4,0.78,False,0,9900.0,23900.0,28\nCE-172733,Glenbrook,Ultrasound,4.6,7,3,0.5,False,3,19100.0,123700.0,40\nCE-172928,Glenbrook,Ultrasound,8.8,7,2,0.66,False,4,46800.0,139300.0,64\nCE-173680,Glenbrook,Ultrasound,5.9,7,3,0.48,False,3,67200.0,135300.0,44\nCE-173964,Glenbrook,Portable X-ray,5.8,10,4,0.91,False,2,53400.0,125300.0,34\nCE-174213,Glenbrook,Portable X-ray,5.6,10,4,0.9,False,1,60500.0,175400.0,31\nCE-174409,Glenbrook,Portable X-ray,7.0,10,3,0.71,False,2,55300.0,133800.0,40\nCE-175062,Glenbrook,Portable X-ray,6.1,10,3,0.83,False,3,53800.0,148300.0,42\nCE-175441,Glenbrook,Portable X-ray,12.9,10,3,0.74,False,3,156100.0,179700.0,57\nCE-176304,Glenbrook,CT scanner,14.4,10,3,0.71,False,3,1156400.0,1320800.0,60\nCE-176573,Glenbrook,CT scanner,5.9,10,4,0.38,False,3,333800.0,1146000.0,31\nCE-176975,Glenbrook,CT scanner,13.6,10,3,0.62,True,4,568800.0,1021200.0,75\nCE-177532,Glenbrook,CT scanner,13.3,10,2,0.46,True,4,349400.0,1352800.0,79\nCE-177815,Glenbrook,CT scanner,10.7,10,2,0.47,False,4,697300.0,1578400.0,58\nCE-178164,Glenbrook,CT scanner,6.9,10,3,0.76,False,2,574000.0,1237400.0,41\nCE-178271,Glenbrook,CT scanner,14.2,10,2,0.73,True,4,508000.0,1147300.0,83\nCE-178760,Glenbrook,Surgical table,21.4,15,1,0.6,False,2,38400.0,62200.0,68\nCE-179028,Glenbrook,Surgical table,12.9,15,3,0.62,False,2,28600.0,53400.0,43\nCE-179626,Glenbrook,Surgical table,13.3,15,3,0.35,False,0,9800.0,42800.0,36\nCE-179753,Glenbrook,Surgical table,12.5,15,3,0.61,False,2,14600.0,55100.0,43\nCE-180447,Glenbrook,Surgical table,19.6,15,2,0.36,True,4,12900.0,48700.0,77\nCE-180608,Glenbrook,ESU,8.3,10,3,0.9,False,2,8800.0,28200.0,45\nCE-180968,Glenbrook,ESU,6.2,10,3,0.78,False,0,8500.0,19200.0,34\nCE-181290,Glenbrook,ESU,12.8,10,2,0.38,True,4,6900.0,24000.0,77\nCE-181533,Glenbrook,ESU,7.5,10,3,0.78,False,5,6600.0,28800.0,50\nCE-181606,Glenbrook,ESU,11.7,10,2,0.37,True,3,9900.0,19400.0,72\nCE-182061,Glenbrook,Endoscope processor,10.6,8,3,0.4,False,3,20500.0,46600.0,54\nCE-182627,Glenbrook,Endoscope processor,8.5,8,3,0.73,False,3,29300.0,42600.0,52\nCE-182669,Glenbrook,Endoscope processor,10.5,8,2,0.84,False,5,19500.0,37500.0,70\nCE-183029,Glenbrook,Endoscope processor,6.4,8,3,0.84,False,4,9600.0,50000.0,49\nCE-183711,Glenbrook,Endoscope processor,10.7,8,2,0.74,True,5,21800.0,37200.0,84\nCE-184508,Glenbrook,Patient bed,12.2,12,4,0.55,False,5,4800.0,21300.0,48\nCE-185257,Glenbrook,Patient bed,11.1,12,2,0.68,False,2,4500.0,19000.0,51\nCE-186105,Glenbrook,Patient bed,14.9,12,2,0.94,False,3,7800.0,20300.0,64\nCE-186106,Glenbrook,Patient bed,13.0,12,2,0.89,True,3,10200.0,16800.0,75\nCE-186794,Glenbrook,Patient bed,6.9,12,4,0.71,False,0,5700.0,15200.0,27\nCE-187624,Glenbrook,Patient bed,15.3,12,2,0.91,True,3,9700.0,18600.0,79\nCE-187943,Highland Park,Infusion pump,9.0,10,3,0.43,False,4,1700.0,3500.0,47\nCE-188520,Highland Park,Infusion pump,13.9,10,2,0.88,False,2,1400.0,3900.0,64\nCE-189218,Highland Park,Infusion pump,9.8,10,4,0.47,False,3,1400.0,3500.0,41\nCE-189454,Highland Park,Infusion pump,6.5,10,4,0.65,False,0,1900.0,4100.0,28\nCE-190278,Highland Park,Infusion pump,14.1,10,1,0.55,False,1,2700.0,4200.0,65\nCE-190824,Highland Park,Physiologic monitor,5.8,8,3,0.87,False,0,9100.0,17100.0,38\nCE-191233,Highland Park,Physiologic monitor,7.0,8,2,0.69,False,3,8500.0,17100.0,53\nCE-191558,Highland Park,Physiologic monitor,11.2,8,3,0.4,True,6,5800.0,14200.0,79\nCE-191919,Highland Park,Physiologic monitor,9.6,8,3,0.37,False,2,12600.0,17100.0,49\nCE-192164,Highland Park,Physiologic monitor,11.5,8,3,0.52,True,5,6500.0,15100.0,78\nCE-192442,Highland Park,Physiologic monitor,4.7,8,4,0.54,False,2,3700.0,14600.0,30\nCE-192522,Highland Park,Ventilator,13.6,10,3,0.67,True,5,15000.0,32600.0,78\nCE-193285,Highland Park,Ventilator,12.2,10,3,0.61,False,3,22200.0,34000.0,54\nCE-193572,Highland Park,Ventilator,13.5,10,2,0.4,True,2,16000.0,37300.0,74\nCE-193721,Highland Park,Ventilator,13.3,10,2,0.87,True,5,16800.0,34800.0,85\nCE-194516,Highland Park,Anesthesia machine,7.9,12,4,0.64,False,3,10900.0,72800.0,35\nCE-194647,Highland Park,Anesthesia machine,9.1,12,4,0.82,False,1,9700.0,68900.0,34\nCE-195248,Highland Park,Anesthesia machine,16.9,12,2,0.35,False,3,39700.0,73800.0,62\nCE-195477,Highland Park,Anesthesia machine,17.2,12,3,0.8,False,2,24300.0,64400.0,58\nCE-196376,Highland Park,Anesthesia machine,11.1,12,3,0.9,False,4,36200.0,65900.0,53\nCE-196758,Highland Park,Anesthesia machine,11.0,12,3,0.4,False,4,43100.0,71800.0,47\nCE-197053,Highland Park,Anesthesia machine,11.5,12,2,0.65,False,6,36300.0,65000.0,62\nCE-197500,Highland Park,Defibrillator,11.4,8,3,0.71,True,3,17100.0,24700.0,75\nCE-197864,Highland Park,Defibrillator,8.4,8,3,0.59,False,4,13300.0,27600.0,52\nCE-198041,Highland Park,Defibrillator,6.7,8,4,0.48,False,3,3800.0,20500.0,38\nCE-198404,Highland Park,Ultrasound,7.5,7,3,0.41,True,2,30600.0,102000.0,61\nCE-198969,Highland Park,Ultrasound,8.5,7,3,0.82,True,3,22700.0,90400.0,71\nCE-199731,Highland Park,Ultrasound,9.9,7,1,0.68,True,3,39100.0,98700.0,86\nCE-200572,Highland Park,Ultrasound,9.3,7,3,0.8,True,5,98000.0,114600.0,78\nCE-200637,Highland Park,Ultrasound,8.5,7,2,0.89,False,4,34000.0,125300.0,65\nCE-201521,Highland Park,Portable X-ray,8.1,10,2,0.67,False,2,74500.0,160000.0,49\nCE-202298,Highland Park,Portable X-ray,10.4,10,2,0.46,False,2,59300.0,123700.0,52\nCE-202715,Highland Park,Portable X-ray,6.7,10,4,0.41,False,2,63100.0,126300.0,31\nCE-202938,Highland Park,CT scanner,9.6,10,3,0.36,False,1,801900.0,1177800.0,41\nCE-203820,Highland Park,CT scanner,6.9,10,3,0.52,False,3,256700.0,1286200.0,41\nCE-204200,Highland Park,CT scanner,10.2,10,2,0.41,False,3,458300.0,1515100.0,53\nCE-204449,Highland Park,Surgical table,20.3,15,2,0.73,False,3,45600.0,49100.0,64\nCE-204933,Highland Park,Surgical table,14.3,15,3,0.73,False,2,30600.0,49100.0,47\nCE-205804,Highland Park,Surgical table,14.6,15,2,0.57,False,2,14500.0,55200.0,51\nCE-206545,Highland Park,Surgical table,21.5,15,1,0.68,True,4,47600.0,51100.0,89\nCE-207128,Highland Park,ESU,9.9,10,3,0.46,False,4,12200.0,23700.0,50\nCE-207670,Highland Park,ESU,7.0,10,3,0.47,False,0,6400.0,20400.0,33\nCE-207856,Highland Park,ESU,5.6,10,3,0.7,False,0,4900.0,27600.0,32\nCE-208172,Highland Park,ESU,12.4,10,2,0.54,False,3,18700.0,26900.0,60\nCE-208792,Highland Park,ESU,10.0,10,3,0.46,False,5,16400.0,24000.0,52\nCE-209642,Highland Park,ESU,14.3,10,2,0.9,True,6,13700.0,18100.0,90\nCE-210282,Highland Park,Endoscope processor,8.4,8,2,0.46,False,3,17800.0,59900.0,55\nCE-210672,Highland Park,Endoscope processor,9.5,8,3,0.87,True,1,12600.0,54700.0,66\nCE-210864,Highland Park,Endoscope processor,8.3,8,1,0.61,False,4,11600.0,53800.0,64\nCE-211252,Highland Park,Endoscope processor,7.6,8,3,0.49,False,2,20500.0,42100.0,44\nCE-211739,Highland Park,Endoscope processor,5.2,8,4,0.66,False,0,10900.0,37900.0,28\nCE-212502,Highland Park,Patient bed,16.9,12,3,0.42,True,7,10800.0,15200.0,79\nCE-213245,Highland Park,Patient bed,14.6,12,3,0.62,False,3,6700.0,15600.0,54\nCE-213802,Highland Park,Patient bed,7.8,12,4,0.56,False,1,4400.0,20200.0,29\nCE-214352,Highland Park,Patient bed,11.5,12,3,0.54,False,3,8600.0,22200.0,47\nCE-214751,Highland Park,Patient bed,12.4,12,3,0.7,False,0,8900.0,21300.0,43\nCE-215062,Swedish,Infusion pump,12.7,10,2,0.53,False,5,1500.0,3800.0,65\nCE-215301,Swedish,Infusion pump,7.3,10,4,0.94,False,2,1400.0,3300.0,37\nCE-215447,Swedish,Infusion pump,5.9,10,3,0.53,False,0,500.0,3300.0,31\nCE-216167,Swedish,Infusion pump,11.9,10,3,0.74,True,3,3200.0,4200.0,70\nCE-216361,Swedish,Infusion pump,8.6,10,3,0.64,False,2,1900.0,4100.0,43\nCE-216422,Swedish,Infusion pump,6.5,10,4,0.67,False,2,600.0,3400.0,33\nCE-217103,Swedish,Infusion pump,6.5,10,5,0.81,False,1,700.0,4000.0,26\nCE-217442,Swedish,Physiologic monitor,10.1,8,1,0.79,False,3,5700.0,15100.0,69\nCE-217575,Swedish,Physiologic monitor,8.9,8,3,0.55,True,2,16800.0,20800.0,63\nCE-218093,Swedish,Physiologic monitor,10.6,8,3,0.37,True,3,12000.0,15900.0,69\nCE-218951,Swedish,Physiologic monitor,8.9,8,3,0.56,True,4,10500.0,16500.0,69\nCE-218980,Swedish,Ventilator,8.9,10,3,0.69,False,0,5500.0,28100.0,40\nCE-219374,Swedish,Ventilator,5.9,10,4,0.84,False,1,14700.0,33900.0,31\nCE-219974,Swedish,Ventilator,11.5,10,3,0.36,False,3,8300.0,30200.0,50\nCE-220507,Swedish,Ventilator,7.1,10,3,0.51,False,2,10000.0,29400.0,39\nCE-221052,Swedish,Ventilator,7.5,10,4,0.51,False,0,6900.0,28500.0,29\nCE-221501,Swedish,Ventilator,10.1,10,3,0.81,False,5,10700.0,29000.0,56\nCE-222338,Swedish,Anesthesia machine,9.5,12,4,0.44,False,3,33500.0,60000.0,36\nCE-222696,Swedish,Anesthesia machine,7.4,12,4,0.42,False,4,11200.0,55200.0,35\nCE-222714,Swedish,Anesthesia machine,9.0,12,3,0.77,False,1,22800.0,77800.0,40\nCE-222985,Swedish,Defibrillator,4.8,8,4,0.5,False,1,3100.0,21200.0,28\nCE-223253,Swedish,Defibrillator,9.8,8,3,0.43,True,6,11100.0,18600.0,75\nCE-223630,Swedish,Defibrillator,6.0,8,4,0.81,False,2,4800.0,25700.0,37\nCE-224081,Swedish,Defibrillator,10.9,8,2,0.89,False,5,26300.0,27600.0,71\nCE-224502,Swedish,Ultrasound,6.5,7,2,0.76,False,1,32200.0,99300.0,50\nCE-224852,Swedish,Ultrasound,4.7,7,4,0.41,False,2,49700.0,101800.0,31\nCE-224956,Swedish,Ultrasound,10.1,7,2,0.93,True,6,112000.0,125000.0,91\nCE-225079,Swedish,Ultrasound,6.8,7,2,0.86,False,3,39500.0,96800.0,57\nCE-225975,Swedish,Ultrasound,5.2,7,3,0.67,False,2,34500.0,74000.0,41\nCE-226825,Swedish,Ultrasound,8.2,7,3,0.93,True,1,61100.0,101600.0,66\nCE-227301,Swedish,Ultrasound,8.8,7,3,0.83,True,3,67000.0,88600.0,72\nCE-227529,Swedish,Portable X-ray,8.3,10,3,0.53,False,2,59100.0,132300.0,42\nCE-227813,Swedish,Portable X-ray,14.0,10,3,0.74,True,1,42600.0,156900.0,70\nCE-228525,Swedish,Portable X-ray,8.6,10,4,0.64,False,3,42300.0,156300.0,40\nCE-229107,Swedish,Portable X-ray,6.0,10,3,0.64,False,1,18400.0,156300.0,35\nCE-229971,Swedish,Portable X-ray,10.5,10,3,0.69,False,3,113800.0,158900.0,51\nCE-230005,Swedish,CT scanner,13.1,10,2,0.6,True,4,578900.0,1586500.0,80\nCE-230122,Swedish,CT scanner,12.3,10,2,0.82,True,1,574100.0,1359300.0,72\nCE-230443,Swedish,CT scanner,10.4,10,3,0.62,False,2,346600.0,1120200.0,47\nCE-230614,Swedish,Surgical table,19.8,15,2,0.63,False,1,33900.0,52900.0,58\nCE-230794,Swedish,Surgical table,20.4,15,2,0.8,False,3,17800.0,55600.0,65\nCE-231478,Swedish,Surgical table,10.8,15,2,0.49,False,1,14500.0,68400.0,42\nCE-231572,Swedish,Surgical table,15.9,15,3,0.64,True,4,15600.0,59900.0,68\nCE-232444,Swedish,Surgical table,9.0,15,3,0.89,False,0,7600.0,53300.0,35\nCE-232855,Swedish,Surgical table,14.9,15,3,0.72,False,2,29100.0,67900.0,47\nCE-232911,Swedish,Surgical table,19.9,15,3,0.77,True,4,37000.0,44300.0,76\nCE-233089,Swedish,ESU,8.8,10,2,0.5,False,1,13700.0,22400.0,46\nCE-233205,Swedish,ESU,7.5,10,3,0.52,False,4,5400.0,20900.0,45\nCE-233793,Swedish,ESU,8.4,10,2,0.76,False,1,11200.0,18600.0,48\nCE-234468,Swedish,ESU,10.1,10,2,0.4,False,0,6800.0,25200.0,46\nCE-235086,Swedish,Endoscope processor,7.2,8,4,0.66,False,3,27500.0,44300.0,41\nCE-235192,Swedish,Endoscope processor,11.3,8,2,0.73,False,4,31000.0,45600.0,68\nCE-235439,Swedish,Endoscope processor,5.8,8,4,0.94,False,3,16700.0,57200.0,40\nCE-235965,Swedish,Endoscope processor,8.6,8,2,0.56,True,2,10500.0,43700.0,69\nCE-236440,Swedish,Endoscope processor,6.4,8,4,0.63,False,4,9900.0,42000.0,41\nCE-236525,Swedish,Endoscope processor,11.3,8,1,0.46,True,4,25900.0,44400.0,87\nCE-236785,Swedish,Endoscope processor,5.0,8,3,0.65,False,0,12000.0,55000.0,33\nCE-237654,Swedish,Patient bed,12.8,12,3,0.47,False,4,6300.0,18400.0,52\nCE-238547,Swedish,Patient bed,6.8,12,4,0.61,False,0,5100.0,18200.0,25\nCE-238656,Swedish,Patient bed,17.1,12,2,0.47,False,2,3700.0,14100.0,61\nCE-239240,Swedish,Patient bed,11.2,12,3,0.43,False,3,3500.0,12200.0,46\nCE-240098,Swedish,Patient bed,14.8,12,2,0.78,False,2,13000.0,14700.0,60\nCE-240243,Northwest Comm.,Infusion pump,7.8,10,3,0.81,False,0,1500.0,3700.0,38\nCE-240355,Northwest Comm.,Infusion pump,9.0,10,3,0.87,False,1,1900.0,3700.0,44\nCE-240438,Northwest Comm.,Infusion pump,6.7,10,4,0.36,False,1,1500.0,4000.0,28\nCE-241294,Northwest Comm.,Infusion pump,13.4,10,2,0.82,False,2,1400.0,3700.0,62\nCE-242078,Northwest Comm.,Physiologic monitor,7.4,8,4,0.74,False,4,8200.0,16600.0,45\nCE-242429,Northwest Comm.,Physiologic monitor,11.5,8,3,0.72,False,4,13300.0,18400.0,63\nCE-242699,Northwest Comm.,Physiologic monitor,5.9,8,4,0.38,False,0,4100.0,20100.0,27\nCE-243014,Northwest Comm.,Ventilator,5.6,10,3,0.72,False,1,8600.0,36700.0,35\nCE-243019,Northwest Comm.,Ventilator,7.7,10,4,0.78,False,2,12400.0,37500.0,37\nCE-243522,Northwest Comm.,Ventilator,6.4,10,4,0.9,False,2,7700.0,35000.0,35\nCE-243829,Northwest Comm.,Ventilator,7.1,10,3,0.42,False,2,5400.0,36500.0,38\nCE-244495,Northwest Comm.,Ventilator,14.4,10,3,0.52,True,3,11700.0,29500.0,73\nCE-244768,Northwest Comm.,Anesthesia machine,16.4,12,2,0.68,False,3,36300.0,77300.0,64\nCE-244785,Northwest Comm.,Anesthesia machine,15.2,12,2,0.66,False,3,46500.0,67500.0,62\nCE-245235,Northwest Comm.,Anesthesia machine,10.9,12,4,0.87,False,4,38000.0,66700.0,46\nCE-246036,Northwest Comm.,Anesthesia machine,11.7,12,3,0.51,False,4,46900.0,76500.0,50\nCE-246563,Northwest Comm.,Anesthesia machine,14.7,12,3,0.65,True,1,36600.0,78400.0,65\nCE-247341,Northwest Comm.,Anesthesia machine,17.3,12,3,0.45,True,4,23800.0,59700.0,75\nCE-247496,Northwest Comm.,Anesthesia machine,12.7,12,2,0.58,True,3,43000.0,60200.0,71\nCE-248394,Northwest Comm.,Defibrillator,7.7,8,3,0.48,False,2,11000.0,23600.0,44\nCE-249212,Northwest Comm.,Defibrillator,8.7,8,3,0.57,True,0,4800.0,19700.0,58\nCE-249414,Northwest Comm.,Defibrillator,9.1,8,3,0.79,True,5,7100.0,27500.0,74\nCE-249609,Northwest Comm.,Defibrillator,4.6,8,4,0.43,False,2,4000.0,22600.0,29\nCE-250486,Northwest Comm.,Defibrillator,4.5,8,4,0.89,False,3,4000.0,23800.0,36\nCE-250611,Northwest Comm.,Defibrillator,4.5,8,4,0.52,False,1,2000.0,18800.0,27\nCE-251213,Northwest Comm.,Ultrasound,5.9,7,3,0.64,False,2,40100.0,89200.0,43\nCE-251581,Northwest Comm.,Ultrasound,8.4,7,2,0.36,False,3,54300.0,127100.0,57\nCE-251664,Northwest Comm.,Ultrasound,8.4,7,2,0.52,True,4,67200.0,107900.0,76\nCE-252168,Northwest Comm.,Ultrasound,7.4,7,3,0.37,True,1,49300.0,114900.0,58\nCE-252912,Northwest Comm.,Ultrasound,8.4,7,3,0.71,True,4,38900.0,95100.0,72\nCE-253416,Northwest Comm.,Ultrasound,8.7,7,3,0.59,False,4,112300.0,125900.0,57\nCE-253488,Northwest Comm.,Portable X-ray,12.7,10,3,0.42,True,4,149200.0,177400.0,71\nCE-253964,Northwest Comm.,Portable X-ray,14.0,10,2,0.53,True,3,61500.0,168200.0,78\nCE-254351,Northwest Comm.,Portable X-ray,7.0,10,4,0.75,False,0,29600.0,126900.0,30\nCE-254385,Northwest Comm.,Portable X-ray,13.6,10,3,0.61,True,5,107300.0,162200.0,77\nCE-254517,Northwest Comm.,Portable X-ray,6.0,10,3,0.9,False,0,64300.0,163400.0,35\nCE-255204,Northwest Comm.,Portable X-ray,13.6,10,4,0.82,False,2,130600.0,137200.0,51\nCE-255804,Northwest Comm.,Portable X-ray,6.3,10,4,0.87,False,2,27800.0,172400.0,34\nCE-256304,Northwest Comm.,CT scanner,12.9,10,2,0.87,True,1,661400.0,933400.0,74\nCE-256717,Northwest Comm.,CT scanner,5.6,10,2,0.48,False,2,445800.0,1348800.0,41\nCE-257095,Northwest Comm.,CT scanner,9.0,10,3,0.76,False,4,381800.0,1194300.0,51\nCE-257865,Northwest Comm.,CT scanner,14.1,10,2,0.93,True,6,887100.0,1256300.0,90\nCE-258179,Northwest Comm.,Surgical table,13.0,15,2,0.68,False,1,25400.0,64700.0,48\nCE-258747,Northwest Comm.,Surgical table,19.2,15,1,0.68,True,2,21500.0,67500.0,81\nCE-259146,Northwest Comm.,Surgical table,19.7,15,3,0.52,True,2,29200.0,52800.0,68\nCE-259451,Northwest Comm.,Surgical table,12.2,15,3,0.51,False,1,28600.0,59700.0,39\nCE-259691,Northwest Comm.,Surgical table,12.9,15,3,0.61,False,1,27100.0,58900.0,41\nCE-260296,Northwest Comm.,ESU,8.1,10,4,0.81,False,3,12200.0,28600.0,40\nCE-260524,Northwest Comm.,ESU,12.5,10,4,0.8,False,4,6400.0,21900.0,53\nCE-261063,Northwest Comm.,ESU,10.5,10,3,0.81,True,4,17600.0,25100.0,70\nCE-261644,Northwest Comm.,ESU,10.9,10,3,0.73,True,0,15700.0,21900.0,60\nCE-262323,Northwest Comm.,Endoscope processor,10.0,8,2,0.66,False,2,19900.0,49800.0,59\nCE-263121,Northwest Comm.,Endoscope processor,8.0,8,2,0.55,False,0,30000.0,57100.0,47\nCE-263205,Northwest Comm.,Endoscope processor,10.1,8,1,0.85,False,2,24200.0,51900.0,67\nCE-263884,Northwest Comm.,Endoscope processor,10.0,8,2,0.88,False,3,27600.0,40100.0,63\nCE-264112,Northwest Comm.,Patient bed,14.0,12,3,0.75,True,4,6100.0,13900.0,72\nCE-264539,Northwest Comm.,Patient bed,9.0,12,3,0.89,False,0,8800.0,16100.0,38\nCE-265148,Northwest Comm.,Patient bed,13.0,12,4,0.8,False,6,15900.0,23500.0,54\nCE-265690,Northwest Comm.,Patient bed,11.1,12,3,0.8,False,2,8900.0,19700.0,47\n", "dq": "site,issue,records\nEvanston,Non-standard nomenclature (no UMDNS/ECRI code),131\nEvanston,Missing or invalid serial number,43\nEvanston,Duplicate asset tag,14\nEvanston,Missing risk / PM classification,33\nEvanston,Location not mapped to department,67\nEvanston,Closed WO with no labor hours,19\nEvanston,Status 'active' but not seen in 24 mo,42\nSkokie,Non-standard nomenclature (no UMDNS/ECRI code),92\nSkokie,Missing or invalid serial number,29\nSkokie,Duplicate asset tag,11\nSkokie,Missing risk / PM classification,25\nSkokie,Location not mapped to department,43\nSkokie,Closed WO with no labor hours,19\nSkokie,Status 'active' but not seen in 24 mo,29\nGlenbrook,Non-standard nomenclature (no UMDNS/ECRI code),78\nGlenbrook,Missing or invalid serial number,31\nGlenbrook,Duplicate asset tag,10\nGlenbrook,Missing risk / PM classification,20\nGlenbrook,Location not mapped to department,49\nGlenbrook,Closed WO with no labor hours,17\nGlenbrook,Status 'active' but not seen in 24 mo,24\nHighland Park,Non-standard nomenclature (no UMDNS/ECRI code),62\nHighland Park,Missing or invalid serial number,25\nHighland Park,Duplicate asset tag,7\nHighland Park,Missing risk / PM classification,19\nHighland Park,Location not mapped to department,36\nHighland Park,Closed WO with no labor hours,14\nHighland Park,Status 'active' but not seen in 24 mo,20\nSwedish,Non-standard nomenclature (no UMDNS/ECRI code),136\nSwedish,Missing or invalid serial number,58\nSwedish,Duplicate asset tag,17\nSwedish,Missing risk / PM classification,32\nSwedish,Location not mapped to department,71\nSwedish,Closed WO with no labor hours,26\nSwedish,Status 'active' but not seen in 24 mo,46\nNorthwest Comm.,Non-standard nomenclature (no UMDNS/ECRI code),78\nNorthwest Comm.,Missing or invalid serial number,31\nNorthwest Comm.,Duplicate asset tag,11\nNorthwest Comm.,Missing risk / PM classification,25\nNorthwest Comm.,Location not mapped to department,56\nNorthwest Comm.,Closed WO with no labor hours,20\nNorthwest Comm.,Status 'active' but not seen in 24 mo,25\n"};</script>
+<script>
+(function(){
+  const raw = window.__CSV__, sets = {}, calcs = {}, memo = {}, draws = {};
+  for (const k in raw) sets[k] = d3.csvParse(raw[k].trim());
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const get = (id) => {
+    if (id in sets) return sets[id];
+    if (id in memo) return memo[id];
+    const c = calcs[id]; if (!c) return null;
+    return (memo[id] = c.fn(...c.inputs.map(get)));
+  };
+  window.dash = {
+    colors: dark ? ['#6aa6ef','#f0a35a','#5fc98a','#c58af0','#e66f9a','#5ccfd0','#d6c25a','#a0a0a0']
+                 : ['#2f6db3','#d0761f','#2c8a53','#8a4fc2','#c24872','#1f8f90','#a48a12','#6f6f6f'],
+    data(id){ const d = get(id); return d ? {status:'ok', data:d, columns: d.columns || (d[0] ? Object.keys(d[0]) : []), meta:[], refreshing:false} : {status:'missing', data:[]}; },
+    calc(id, c){ calcs[id] = c; },
+    loader(){},
+    onData(fn){ (window.__ON__ ||= []).push(fn); },
+    params(){ return {}; }, setParams(){}, resetParams(){}, setLink(){}, refresh(){},
+    draw(name, fn){
+      if (fn) { draws[name] = fn; return; }
+      const f = draws[name]; if (!f) return;
+      for (const el of document.querySelectorAll(`[data-draw="${name}"]`)) { try { f(el); } catch (e) { console.error(name, e); } }
+    }
+  };
+  const all = () => { for (const fn of (window.__ON__ || [])) fn(); for (const n in draws) dash.draw(n); };
+  addEventListener('DOMContentLoaded', all);
+  let w = innerWidth, t; addEventListener('resize', () => { if (innerWidth === w) return; w = innerWidth; clearTimeout(t); t = setTimeout(all, 120); });
+})();
+</script>
+</head><body>
+<div id="dash-root">
+
+<style>
+.ce{font-family:var(--font-anthropic-sans);color:var(--color-fg);display:flex;flex-direction:column;gap:var(--cds-gap-xl);font-variant-numeric:tabular-nums}
+.ce h1{font-family:var(--font-anthropic-serif);font-weight:400;font-size:calc(var(--cds-font-size-title) * 1.35);margin:0;line-height:1.15}
+.ce h2{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0 0 var(--cds-gap-sm)}
+.ce h3{font-size:var(--cds-font-size-body);font-weight:var(--cds-font-weight-medium);margin:0}
+.ce p{margin:0}
+.ce-eyebrow{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:var(--cds-gap-xs)}
+.ce-take{font-size:var(--cds-font-size-body);max-width:62rem;margin-top:var(--cds-gap-sm);line-height:1.5}
+.ce .ce-take b,.ce .ce-rec b{font-weight:var(--cds-font-weight-medium)}
+.ce-sample{display:inline-block;margin-top:var(--cds-gap-sm);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-xs) var(--cds-pad-sm)}
+.ce-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10.5rem),1fr));gap:var(--cds-gap-md)}
+.ce-tile,.ce-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg)}
+.ce-tile{display:flex;flex-direction:column;gap:var(--cds-gap-xs)}
+.ce-tl{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ce-big{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);line-height:1.1}
+.ce-sub{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ce-good{color:var(--color-ok)}.ce-bad{color:var(--color-bad)}.ce-warn{color:var(--color-warn)}.ce-okc{color:var(--color-ok)}
+.ce-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));gap:var(--cds-gap-md)}
+.ce-note{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-bottom:var(--cds-gap-md)!important}
+.ce-chart{position:relative;min-height:240px}
+.ce-chart.ce-tall{min-height:320px}
+.ce-svg text{font-size:var(--cds-font-size-caption);fill:var(--color-fg-muted);font-family:var(--font-anthropic-sans)}
+.ce-svg .ce-lab{fill:var(--color-fg)}
+.ce-gridl{stroke:var(--cds-chart-grid);stroke-width:1}
+.ce-axis{stroke:var(--cds-chart-axis);stroke-width:1}
+.ce-ref{stroke:var(--cds-chart-reference);stroke-width:1;stroke-dasharray:4 3}
+.ce-tip{position:absolute;pointer-events:none;background:var(--cds-surface-popover);border:1px solid var(--cds-border);border-radius:var(--cds-radius);box-shadow:var(--cds-shadow-popover);padding:var(--cds-pad-xs) var(--cds-pad-sm);font-size:var(--cds-font-size-caption);white-space:nowrap;z-index:5;display:none}
+.ce-tip .t{color:var(--cds-text-secondary);margin-bottom:2px}
+.ce-tip .r{display:flex;align-items:center;gap:6px}
+.ce-tip .sw{width:8px;height:8px;border-radius:2px;flex:none}
+.ce-tip .v{margin-left:auto;padding-left:12px;font-weight:var(--cds-font-weight-medium)}
+.ce-fail{display:flex;align-items:center;justify-content:center;gap:6px;min-height:inherit;height:100%;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption)}
+.ce-fail i{width:.375rem;height:.375rem;border-radius:50%;background:var(--color-bad)}
+.ce-legend{display:flex;flex-wrap:wrap;gap:var(--cds-gap-md);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-bottom:var(--cds-gap-sm)}
+.ce-legend span{display:inline-flex;align-items:center;gap:6px}
+.ce-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;background:var(--cds-chart-muted)}
+.ce-legend i.ln{height:2px;width:14px}
+.ce-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--cds-gap-md);margin-bottom:var(--cds-gap-md)}
+.ce select{font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:var(--color-bg);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-xs) var(--cds-pad-sm)}
+.ce-hbars{display:flex;flex-direction:column;gap:var(--cds-gap-sm);min-height:200px}
+.ce-hb-l{display:flex;justify-content:space-between;gap:var(--cds-gap-sm);font-size:var(--cds-font-size-caption);margin-bottom:3px}
+.ce-hb-l .v{font-weight:var(--cds-font-weight-medium)}
+.ce-hb-t{position:relative;height:12px;background:var(--cds-chart-grid);border-radius:var(--cds-radius)}
+.ce-hb-f{position:absolute;left:0;top:0;bottom:0;border-radius:var(--cds-radius)}
+.ce-hb-band{position:absolute;top:-3px;bottom:-3px;background:var(--color-ok);opacity:.14;border-radius:2px}
+.ce-hb-ref{position:absolute;top:-4px;bottom:-4px;width:0;border-left:1.5px dashed var(--cds-chart-reference)}
+.ce-tbl{overflow:auto;max-height:30rem}
+.ce table{width:100%;border-collapse:collapse;font-size:var(--cds-font-size-caption)}
+.ce th{position:sticky;top:0;background:var(--color-panel);text-align:right;font-weight:var(--cds-font-weight-medium);color:var(--color-fg-muted);padding:6px 8px;border-bottom:1px solid var(--color-border-line);cursor:pointer;white-space:nowrap}
+.ce th:first-child,.ce td:first-child{text-align:left}
+.ce td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
+.ce td.l{text-align:left}
+.ce th[aria-sort=ascending]::after{content:" ▲"}.ce th[aria-sort=descending]::after{content:" ▼"}
+.ce-recs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr));gap:var(--cds-gap-md)}
+.ce-rec{border-left:3px solid var(--color-border-line);padding:var(--cds-pad-sm) var(--cds-pad-md);font-size:var(--cds-font-size-body);line-height:1.5}
+.ce-rec .n{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-bottom:4px}
+.ce-defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:var(--cds-gap-md) var(--cds-gap-xl);font-size:var(--cds-font-size-caption);line-height:1.55}
+.ce-defs dt{font-weight:var(--cds-font-weight-medium);color:var(--color-fg)}
+.ce-defs dd{margin:2px 0 0;color:var(--color-fg-muted)}
+.ce-foot{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+[data-dash-source-state=refreshing]{opacity:.5;transition:opacity var(--cds-dur-slow)}
+@media (prefers-reduced-motion:no-preference){.ce-hb-f{animation:ceGrow var(--cds-dur-slow) var(--cds-ease-out)}@keyframes ceGrow{from{transform:scaleX(0);transform-origin:left}}}
+</style>
+
+<div class="ce">
+  <header class="ce-head" id="top">
+    <div class="ce-eyebrow">Endeavor Health · Clinical Engineering · Sodexo HTM</div>
+    <h1>Clinical Engineering Command Center</h1>
+    <p class="ce-take">In <span data-draw="num" data-source="kpi" data-field="month_label" class="dash-skeleton">—</span>, system PM on-time compliance was <b data-draw="num" data-source="kpi" data-field="pm_pct" data-fmt="pct1" class="dash-skeleton">—</b> against a <span data-draw="const" data-k="pm">—</span> target. <b data-draw="num" data-source="headline" data-field="worst_pm_site">—</b> trails at <b data-draw="num" data-source="headline" data-field="worst_pm_pct" data-fmt="pct1">—</b> over 12 months, <b data-draw="num" data-source="headline" data-field="top_cosr_site">—</b> runs the highest cost-of-service ratio at <b data-draw="num" data-source="headline" data-field="top_cosr_pct" data-fmt="pct2">—</b>, and <b data-draw="num" data-source="headline" data-field="fy1_cost" data-fmt="money">—</b> of equipment is flagged for <span data-draw="num" data-source="headline" data-field="fy1_year">—</span> replacement.</p>
+    <span class="ce-sample">Demo built on sample data — synthetic CMMS records generated to realistic HTM ranges. No Endeavor Health data is used.</span>
+  </header>
+
+  <section id="kpis" aria-label="Headline KPIs">
+    <div class="ce-tiles">
+      <div class="ce-tile">
+        <div class="ce-tl">PM on-time compliance</div>
+        <div class="ce-big" data-draw="num" data-source="kpi" data-field="pm_pct" data-fmt="pct1">—</div>
+        <div class="ce-sub"><span data-draw="delta" data-source="kpi" data-field="pm_delta" data-good="up" data-unit=" pts">—</span> vs prior month · target <span data-draw="const" data-k="pm">—</span></div>
+      </div>
+      <div class="ce-tile">
+        <div class="ce-tl">Life-support PM compliance</div>
+        <div class="ce-big" data-draw="num" data-source="kpi" data-field="ls_pct" data-fmt="pct1">—</div>
+        <div class="ce-sub"><span data-draw="num" data-source="kpi" data-field="ls_missed" data-fmt="int">—</span> missed this month · target <span data-draw="const" data-k="ls">—</span></div>
+      </div>
+      <div class="ce-tile">
+        <div class="ce-tl">Imaging uptime</div>
+        <div class="ce-big" data-draw="num" data-source="kpi" data-field="up_pct" data-fmt="pct2">—</div>
+        <div class="ce-sub"><span data-draw="delta" data-source="kpi" data-field="up_delta" data-good="up" data-unit=" pts" data-p=".2f">—</span> vs prior month · target <span data-draw="const" data-k="up">—</span></div>
+      </div>
+      <div class="ce-tile">
+        <div class="ce-tl">Corrective WO turnaround (median)</div>
+        <div class="ce-big" data-draw="num" data-source="kpi" data-field="tat_hrs" data-fmt="hrs">—</div>
+        <div class="ce-sub"><span data-draw="delta" data-source="kpi" data-field="tat_delta" data-good="down" data-unit=" h">—</span> vs prior month</div>
+      </div>
+      <div class="ce-tile">
+        <div class="ce-tl">Open corrective backlog</div>
+        <div class="ce-big" data-draw="num" data-source="kpi" data-field="backlog" data-fmt="int">—</div>
+        <div class="ce-sub"><span data-draw="delta" data-source="kpi" data-field="backlog_delta" data-good="down" data-p=",.0f">—</span> work orders vs prior month</div>
+      </div>
+      <div class="ce-tile">
+        <div class="ce-tl">Cost of service ratio (T12M)</div>
+        <div class="ce-big" data-draw="num" data-source="kpi" data-field="cosr_pct" data-fmt="pct2">—</div>
+        <div class="ce-sub">Benchmark range <span data-draw="const" data-k="cosr">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="actions" aria-label="Recommended actions">
+    <h2>What I'd bring to the next leadership review</h2>
+    <div class="ce-recs">
+      <div class="ce-rec"><div class="n">1 · PM recovery</div>Stand up a PM recovery plan at <b data-draw="num" data-source="headline" data-field="worst_pm_site">—</b>: <b data-draw="num" data-source="headline" data-field="worst_pm_pct" data-fmt="pct1">—</b> on time over 12 months, with <b data-draw="num" data-source="headline" data-field="worst_ls_missed" data-fmt="int">—</b> life-support PMs missed against a <span data-draw="const" data-k="ls">—</span> requirement.</div>
+      <div class="ce-rec"><div class="n">2 · Cost of service</div>Review the service mix at <b data-draw="num" data-source="headline" data-field="top_cosr_site">—</b>: COSR of <b data-draw="num" data-source="headline" data-field="top_cosr_pct" data-fmt="pct2">—</b> vs <b data-draw="num" data-source="headline" data-field="sys_cosr_pct" data-fmt="pct2">—</b> system-wide. Test which OEM contracts could move in-house.</div>
+      <div class="ce-rec"><div class="n">3 · Capital plan</div>Fund the <b data-draw="num" data-source="headline" data-field="fy1_year">—</b> replacement wave: <b data-draw="num" data-source="headline" data-field="fy1_assets" data-fmt="int">—</b> assets totalling <b data-draw="num" data-source="headline" data-field="fy1_cost" data-fmt="money">—</b>, of which <b data-draw="num" data-source="headline" data-field="fy1_eos" data-fmt="int">—</b> are past manufacturer end-of-support.</div>
+      <div class="ce-rec"><div class="n">4 · CMMS data integrity</div>Fix “<span data-draw="num" data-source="headline" data-field="dq_top_issue">—</span>” first: <b data-draw="num" data-source="headline" data-field="dq_top_records" data-fmt="int">—</b> records. It is the largest integrity gap and blocks reliable AAMI/ECRI benchmarking.</div>
+    </div>
+  </section>
+
+  <section id="operations">
+    <h2>Program performance</h2>
+    <div class="ce-grid2">
+      <div class="ce-card">
+        <div class="ce-row">
+          <div><h3>PM compliance by month</h3><p class="ce-sub">On-time and life-support PM completion, last 12 months</p></div>
+          <select class="ce-sitepick" data-draw="sitepick" data-source="sites" aria-label="Site"></select>
+        </div>
+        <div class="ce-chart" data-draw="pmtrend" data-source="trend"></div>
+      </div>
+      <div class="ce-card">
+        <div class="ce-row">
+          <div><h3>Corrective work orders</h3><p class="ce-sub">Opened vs closed each month, with open backlog</p></div>
+          <select class="ce-sitepick" data-draw="sitepick" data-source="sites" aria-label="Site"></select>
+        </div>
+        <div class="ce-legend"><span><i class="ce-sw0"></i>Opened</span><span><i class="ce-sw1"></i>Closed</span><span><i class="ln ce-sw2"></i>Open backlog (right axis)</span></div>
+        <div class="ce-chart" data-draw="woflow" data-source="trend"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sites">
+    <div class="ce-card">
+      <h3>Site scorecard</h3>
+      <p class="ce-note">Trailing 12 months by hospital. Backlog is the latest month-end. Click a column to sort; color shows performance against target.</p>
+      <div class="ce-tbl">
+        <table class="ce-score" data-source="sites" data-row-key="site">
+          <thead><tr>
+            <th data-field="site">Site</th>
+            <th data-field="assets">Assets</th>
+            <th data-field="pm_pct">PM on-time</th>
+            <th data-field="ls_pct">Life-support PM</th>
+            <th data-field="up_pct">Imaging uptime</th>
+            <th data-field="tat_hrs">Median TAT</th>
+            <th data-field="repeat_pct">Repeat failure</th>
+            <th data-field="backlog">Backlog</th>
+            <th data-field="cosr_pct">COSR</th>
+          </tr></thead>
+          <tbody data-draw="scorecard"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="cost">
+    <div class="ce-grid2">
+      <div class="ce-card">
+        <h3>Cost of service ratio by site</h3>
+        <p class="ce-note">Annual service cost ÷ acquisition value of supported equipment. Shaded band is the <span data-draw="const" data-k="cosr">—</span> benchmark range; dashed line is the system ratio.</p>
+        <div class="ce-hbars" data-draw="cosrbars" data-source="sites kpi"></div>
+      </div>
+      <div class="ce-card">
+        <h3>Repeat failures by site</h3>
+        <p class="ce-note">Corrective work orders on the same asset within 30 days of a prior repair, as a share of work orders closed. A leading signal for PM quality and training gaps.</p>
+        <div class="ce-hbars" data-draw="repbars" data-source="sites"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="capital">
+    <h2>Capital replacement planning</h2>
+    <div class="ce-grid2">
+      <div class="ce-card">
+        <h3>Replacement risk vs. life consumed</h3>
+        <p class="ce-note">Each dot is a capital-tracked asset. Bubble size is replacement cost; red marks a risk score of <span data-draw="const" data-k="risk">—</span> or more.</p>
+        <div class="ce-chart ce-tall" data-draw="capscatter" data-source="capital"></div>
+      </div>
+      <div class="ce-card">
+        <h3>Five-year replacement plan</h3>
+        <p class="ce-note">Replacement cost by planned year, assigned from the risk score. Feeds the five-year capital request.</p>
+        <div class="ce-hbars" data-draw="capyears" data-source="capyears"></div>
+      </div>
+    </div>
+    <div class="ce-card" style="margin-top:var(--cds-gap-md)">
+      <h3>Top replacement priorities</h3>
+      <p class="ce-note">Highest-risk assets with total-cost-of-ownership inputs. A 5-year service cost above half of replacement cost is a repair-vs-replace flag.</p>
+      <div class="ce-tbl">
+        <table data-source="capital" data-row-key="asset_id">
+          <thead><tr>
+            <th data-field="asset_id">Asset</th>
+            <th data-field="device_class">Device</th>
+            <th data-field="site">Site</th>
+            <th data-field="life_pct">Life used</th>
+            <th data-field="condition">Condition (1–5)</th>
+            <th data-field="fails_12m">Failures 12m</th>
+            <th data-field="end_of_support">End of support</th>
+            <th data-field="svc_ratio_pct">Service ÷ replace</th>
+            <th data-field="replacement_cost">Replacement</th>
+            <th data-field="risk_score">Risk</th>
+            <th data-field="plan_year">Plan year</th>
+          </tr></thead>
+          <tbody data-draw="captable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="dataquality">
+    <h2>CMMS data integrity</h2>
+    <div class="ce-grid2">
+      <div class="ce-card">
+        <h3>Open data-quality issues by type</h3>
+        <p class="ce-note">Records failing a validation rule in the latest audit run.</p>
+        <div class="ce-hbars" data-draw="dqbars" data-source="dqsum"></div>
+      </div>
+      <div class="ce-card">
+        <h3>Issues per 100 assets by site</h3>
+        <p class="ce-note">Normalizes for inventory size so sites compare fairly. One record can fail more than one rule.</p>
+        <div class="ce-hbars" data-draw="dqsitebars" data-source="dqsite"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="definitions" class="ce-card">
+    <h2>KPI definitions and logic</h2>
+    <dl class="ce-defs">
+      <div><dt>PM on-time compliance</dt><dd>Scheduled PMs completed within their scheduled month ÷ PMs scheduled. Late completions count as missed. Target <span data-draw="const" data-k="pm">—</span>.</dd></div>
+      <div><dt>Life-support PM compliance</dt><dd>The same measure restricted to life-support and high-risk equipment, held to <span data-draw="const" data-k="ls">—</span> under Joint Commission EC.02.04.03.</dd></div>
+      <div><dt>Cost of service ratio (COSR)</dt><dd>Total service cost (labor, parts, contracts) over 12 months ÷ acquisition value of supported equipment. Commonly cited HTM range <span data-draw="const" data-k="cosr">—</span>.</dd></div>
+      <div><dt>Imaging uptime</dt><dd>Scheduled hours available ÷ scheduled hours for imaging modalities, averaged across sites. Target <span data-draw="const" data-k="up">—</span>.</dd></div>
+      <div><dt>Corrective turnaround</dt><dd>Hours from work-order open to completion, median per site, then averaged across sites.</dd></div>
+      <div><dt>Repeat failure</dt><dd>Corrective work orders on an asset within 30 days of a prior corrective close ÷ corrective work orders closed.</dd></div>
+      <div><dt>Replacement risk score (0–100)</dt><dd>Age vs. expected life (35), condition (24), end-of-support (15), failures in 12 months (15), utilization (10). Plan year: 75+ next year, then one year later per 10 points, down to 35.</dd></div>
+      <div><dt>How this runs in Power BI</dt><dd>A star schema over CMMS extracts (FactWorkOrder, FactPM, FactServiceCost, DimAsset, DimSite, DimDate), each KPI a documented DAX measure, refreshed on a scheduled cadence with data-quality rules run in Power Query before load.</dd></div>
+    </dl>
+  </section>
+
+  <p class="ce-foot">Prepared by Abdul as a working demo for the Business Analyst, Clinical Engineering role (R49489). All figures are sample data.</p>
+</div>
+
+<script>
+(function () {
+  const CE = window.CE = { site: 'All sites', sort: { field: 'pm_pct', dir: 1 } };
+  CE.TARGET = { pm: 95, ls: 100, up: 98, cosrLo: 3, cosrHi: 6, risk: 75 };
+  const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
+  CE.f = {
+    text: (v) => String(v),
+    int: d3.format(','),
+    pct1: (v) => d3.format('.1f')(v) + '%',
+    pct2: (v) => d3.format('.2f')(v) + '%',
+    hrs: (v) => d3.format('.1f')(v) + ' h',
+    money: (v) => '$' + compact.format(v),
+    money0: d3.format('$,.0f')
+  };
+  CE.mlabel = (m) => { const d = new Date(m + '-01T00:00:00Z'); return d.getUTCMonth() === 0 ? d3.utcFormat("%b '%y")(d) : d3.utcFormat('%b')(d); };
+  CE.mlong = (m) => d3.utcFormat('%B %Y')(new Date(m + '-01T00:00:00Z'));
+  CE.row = (id) => { const g = dash.data(id); return g.status === 'ok' && g.data && g.data[0] ? g.data[0] : null; };
+  CE.ready = (el, ids) => {
+    const st = ids.map((id) => dash.data(id).status);
+    if (st.every((s) => s === 'ok')) { el.classList.remove('dash-skeleton'); return true; }
+    el.replaceChildren();
+    if (st.some((s) => s === 'error' || s === 'connect' || s === 'declined')) {
+      el.classList.remove('dash-skeleton');
+      const f = document.createElement('div'); f.className = 'ce-fail';
+      const dot = document.createElement('i'); const t = document.createElement('span'); t.textContent = 'Failed to load';
+      f.append(dot, t); el.append(f);
+    } else el.classList.add('dash-skeleton');
+    return false;
+  };
+  CE.tip = (el) => {
+    const t = document.createElement('div'); t.className = 'ce-tip'; el.append(t);
+    return {
+      show(x, y, title, lines) {
+        t.replaceChildren();
+        const h = document.createElement('div'); h.className = 't'; h.textContent = title; t.append(h);
+        for (const [name, val, color] of lines) {
+          const r = document.createElement('div'); r.className = 'r';
+          if (color) { const s = document.createElement('span'); s.className = 'sw'; s.style.background = color; r.append(s); }
+          const n = document.createElement('span'); n.textContent = name;
+          const v = document.createElement('span'); v.className = 'v'; v.textContent = val;
+          r.append(n, v); t.append(r);
+        }
+        t.style.display = 'block';
+        const W = el.clientWidth, tw = t.offsetWidth, th = t.offsetHeight;
+        let left = x + 14; if (left + tw > W) left = x - tw - 14; if (left < 0) left = 0;
+        t.style.left = left + 'px'; t.style.top = Math.max(0, y - th / 2) + 'px';
+      },
+      hide() { t.style.display = 'none'; }
+    };
+  };
+  // Horizontal HTML bars. rows: [{label, value, text, color}], o: {max, band:[lo,hi], ref}
+  CE.hbars = (el, rows, o = {}) => {
+    el.replaceChildren();
+    const max = o.max ?? (d3.max(rows, (r) => r.value) || 1);
+    const pct = (v) => Math.max(0, Math.min(100, (v / max) * 100)) + '%';
+    for (const r of rows) {
+      const wrap = document.createElement('div');
+      const l = document.createElement('div'); l.className = 'ce-hb-l';
+      const a = document.createElement('span'); a.textContent = r.label;
+      const b = document.createElement('span'); b.className = 'v'; b.textContent = r.text;
+      l.append(a, b);
+      const t = document.createElement('div'); t.className = 'ce-hb-t';
+      if (o.band) { const bd = document.createElement('div'); bd.className = 'ce-hb-band'; bd.style.left = pct(o.band[0]); bd.style.width = `calc(${pct(o.band[1])} - ${pct(o.band[0])})`; t.append(bd); }
+      const f = document.createElement('div'); f.className = 'ce-hb-f'; f.style.width = pct(r.value); f.style.background = r.color; t.append(f);
+      if (o.ref != null) { const rf = document.createElement('div'); rf.className = 'ce-hb-ref'; rf.style.left = pct(o.ref); t.append(rf); }
+      wrap.append(l, t); el.append(wrap);
+    }
+  };
+  // legend swatches
+  const sw = [['.ce-sw0', 'var(--cds-chart-muted)'], ['.ce-sw1', dash.colors[0]], ['.ce-sw2', dash.colors[1]]];
+  for (const [sel, c] of sw) for (const n of document.querySelectorAll(sel)) n.style.background = c;
+})();
+</script>
+
+<script>
+// ---- Calculations (all from the three sample files) ----
+dash.calc('kpi', {
+  inputs: ['monthly'], title: 'Latest-month system KPIs',
+  description: 'System totals for the latest month with change vs the month before; COSR uses the trailing 12 months.',
+  fn: (monthly) => {
+    const num = (d) => { const o = {}; for (const k in d) o[k] = (k === 'month' || k === 'site') ? d[k] : Number(d[k]); return o; };
+    const r = monthly.map(num);
+    const months = [...new Set(r.map((d) => d.month))].sort();
+    const win = new Set(months.slice(-12));
+    const of = (m) => r.filter((d) => d.month === m);
+    const sum = (m, k) => of(m).reduce((a, d) => a + d[k], 0);
+    const avg = (m, k) => sum(m, k) / of(m).length;
+    const rd = (v, p = 1) => Math.round(v * 10 ** p) / 10 ** p;
+    const at = (m) => ({
+      pm: rd(100 * sum(m, 'pm_on_time') / sum(m, 'pm_scheduled')),
+      ls: rd(100 * sum(m, 'ls_pm_completed') / sum(m, 'ls_pm_scheduled')),
+      lsMiss: sum(m, 'ls_pm_scheduled') - sum(m, 'ls_pm_completed'),
+      up: rd(avg(m, 'imaging_uptime_pct'), 2), tat: rd(avg(m, 'median_tat_hrs')),
+      bl: sum(m, 'backlog_end')
+    });
+    const last = months[months.length - 1], L = at(last), P = at(months[months.length - 2]);
+    const sites = [...new Set(r.map((d) => d.site))];
+    const acq = sites.reduce((a, s) => a + r.find((d) => d.site === s).acq_value, 0);
+    const cost = r.filter((d) => win.has(d.month)).reduce((a, d) => a + d.service_cost, 0);
+    const names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const [y, mo] = last.split('-');
+    return [{
+      month: last, month_label: names[Number(mo) - 1] + ' ' + y,
+      pm_pct: L.pm, pm_delta: rd(L.pm - P.pm), ls_pct: L.ls, ls_missed: L.lsMiss,
+      up_pct: L.up, up_delta: rd(L.up - P.up, 2), tat_hrs: L.tat, tat_delta: rd(L.tat - P.tat),
+      backlog: L.bl, backlog_delta: L.bl - P.bl, cosr_pct: rd(100 * cost / acq, 2)
+    }];
+  }
+});
+
+dash.calc('sites', {
+  inputs: ['monthly'], title: 'Site scorecard (T12M)',
+  description: 'Each hospital over the last 12 months; backlog and asset count from the latest month.',
+  fn: (monthly) => {
+    const num = (d) => { const o = {}; for (const k in d) o[k] = (k === 'month' || k === 'site') ? d[k] : Number(d[k]); return o; };
+    const r = monthly.map(num);
+    const months = [...new Set(r.map((d) => d.month))].sort();
+    const last = months[months.length - 1], win = new Set(months.slice(-12));
+    const rd = (v, p = 1) => Math.round(v * 10 ** p) / 10 ** p;
+    return [...new Set(r.map((d) => d.site))].map((s) => {
+      const x = r.filter((d) => d.site === s && win.has(d.month));
+      const S = (k) => x.reduce((a, d) => a + d[k], 0), A = (k) => S(k) / x.length;
+      const L = x.find((d) => d.month === last);
+      return {
+        site: s, assets: L.assets,
+        pm_pct: rd(100 * S('pm_on_time') / S('pm_scheduled')),
+        ls_pct: rd(100 * S('ls_pm_completed') / S('ls_pm_scheduled')),
+        ls_missed: S('ls_pm_scheduled') - S('ls_pm_completed'),
+        up_pct: rd(A('imaging_uptime_pct'), 2), tat_hrs: rd(A('median_tat_hrs')),
+        repeat_pct: rd(100 * S('repeat_fail_30d') / S('cm_closed')),
+        backlog: L.backlog_end, cosr_pct: rd(100 * S('service_cost') / L.acq_value, 2)
+      };
+    });
+  }
+});
+
+dash.calc('trend', {
+  inputs: ['monthly'], title: 'Monthly trend by site',
+  description: 'PM compliance and corrective work-order flow per month, for each site and all sites combined.',
+  fn: (monthly) => {
+    const num = (d) => { const o = {}; for (const k in d) o[k] = (k === 'month' || k === 'site') ? d[k] : Number(d[k]); return o; };
+    const r = monthly.map(num);
+    const months = [...new Set(r.map((d) => d.month))].sort();
+    const sites = ['All sites', ...new Set(r.map((d) => d.site))];
+    const rd = (v) => Math.round(v * 10) / 10;
+    const out = [];
+    for (const m of months) for (const s of sites) {
+      const x = r.filter((d) => d.month === m && (s === 'All sites' || d.site === s));
+      const S = (k) => x.reduce((a, d) => a + d[k], 0);
+      out.push({ month: m, site: s, pm_pct: rd(100 * S('pm_on_time') / S('pm_scheduled')), ls_pct: rd(100 * S('ls_pm_completed') / S('ls_pm_scheduled')), opened: S('cm_opened'), closed: S('cm_closed'), backlog: S('backlog_end') });
+    }
+    return out;
+  }
+});
+
+dash.calc('capital', {
+  inputs: ['assets'], title: 'Capital risk scoring',
+  description: 'Capital-tracked assets with life used, service-to-replacement ratio and a plan year from the risk score.',
+  fn: (assets) => assets.map((d) => {
+    const age = Number(d.age_yrs), life = Number(d.expected_life), risk = Number(d.risk_score);
+    const rep = Number(d.replacement_cost), svc = Number(d.svc_cost_5y);
+    const plan = risk >= 75 ? 'FY2027' : risk >= 65 ? 'FY2028' : risk >= 55 ? 'FY2029' : risk >= 45 ? 'FY2030' : risk >= 35 ? 'FY2031' : 'Beyond FY2031';
+    return {
+      asset_id: d.asset_id, site: d.site, device_class: d.device_class, age_yrs: age, expected_life: life,
+      life_pct: Math.round(100 * age / life), condition: Number(d.condition), fails_12m: Number(d.fails_12m),
+      end_of_support: d.end_of_support === 'True' ? 'Yes' : 'No', svc_cost_5y: svc, replacement_cost: rep,
+      svc_ratio_pct: Math.round(100 * svc / rep), risk_score: risk, plan_year: plan
+    };
+  }).sort((a, b) => b.risk_score - a.risk_score)
+});
+
+dash.calc('capyears', {
+  inputs: ['capital'], title: 'Five-year plan by year',
+  description: 'Count, replacement cost and end-of-support assets per planned replacement year.',
+  fn: (capital) => ['FY2027', 'FY2028', 'FY2029', 'FY2030', 'FY2031'].map((y) => {
+    const x = capital.filter((d) => d.plan_year === y);
+    return { year: y, assets: x.length, cost: x.reduce((a, d) => a + d.replacement_cost, 0), eos: x.filter((d) => d.end_of_support === 'Yes').length };
+  })
+});
+
+dash.calc('dqsum', {
+  inputs: ['dq', 'monthly'], title: 'Data-quality issues by type',
+  description: 'Records failing each validation rule, and per 100 assets in the inventory.',
+  fn: (dq, monthly) => {
+    const last = monthly.map((d) => d.month).sort().pop();
+    const assets = monthly.filter((d) => d.month === last).reduce((a, d) => a + Number(d.assets), 0);
+    const by = {};
+    for (const d of dq) by[d.issue] = (by[d.issue] || 0) + Number(d.records);
+    return Object.entries(by).map(([issue, records]) => ({ issue, records, per100: Math.round(10000 * records / assets) / 100 })).sort((a, b) => b.records - a.records);
+  }
+});
+
+dash.calc('dqsite', {
+  inputs: ['dq', 'monthly'], title: 'Data-quality issues by site',
+  description: 'Records failing any validation rule, per 100 assets at each site.',
+  fn: (dq, monthly) => {
+    const last = monthly.map((d) => d.month).sort().pop();
+    const sites = [...new Set(dq.map((d) => d.site))];
+    return sites.map((s) => {
+      const records = dq.filter((d) => d.site === s).reduce((a, d) => a + Number(d.records), 0);
+      const assets = Number(monthly.find((d) => d.month === last && d.site === s).assets);
+      return { site: s, records, per100: Math.round(1000 * records / assets) / 10 };
+    }).sort((a, b) => b.per100 - a.per100);
+  }
+});
+
+dash.calc('headline', {
+  inputs: ['sites', 'kpi', 'capyears', 'dqsum'], title: 'Headline findings',
+  description: 'Lowest PM site, highest COSR site, next-year capital wave and largest data-quality gap.',
+  fn: (sites, kpi, capyears, dqsum) => {
+    const worst = sites.reduce((a, b) => (b.pm_pct < a.pm_pct ? b : a));
+    const top = sites.reduce((a, b) => (b.cosr_pct > a.cosr_pct ? b : a));
+    const fy = capyears[0], dqt = dqsum[0];
+    return [{
+      worst_pm_site: worst.site, worst_pm_pct: worst.pm_pct, worst_ls_missed: worst.ls_missed,
+      top_cosr_site: top.site, top_cosr_pct: top.cosr_pct, sys_cosr_pct: kpi[0].cosr_pct,
+      fy1_year: fy.year, fy1_assets: fy.assets, fy1_cost: fy.cost, fy1_eos: fy.eos,
+      dq_top_issue: dqt.issue, dq_top_records: dqt.records
+    }];
+  }
+});
+</script>
+
+<script>
+// ---- Text drawings ----
+dash.draw('const', (el) => {
+  const T = CE.TARGET;
+  const map = { pm: T.pm + '%', ls: T.ls + '%', up: T.up + '%', cosr: T.cosrLo + '–' + T.cosrHi + '%', risk: String(T.risk) };
+  el.textContent = map[el.dataset.k] ?? '—';
+});
+dash.draw('num', (el) => {
+  const src = el.dataset.source, g = dash.data(src), r = CE.row(src);
+  el.classList.toggle('dash-skeleton', g.status === 'loading');
+  if (!r) { el.textContent = '—'; return; }
+  const v = r[el.dataset.field], f = CE.f[el.dataset.fmt || 'text'];
+  el.textContent = v === null || v === undefined ? '—' : f(v);
+});
+dash.draw('delta', (el) => {
+  const r = CE.row(el.dataset.source);
+  el.classList.remove('ce-good', 'ce-bad');
+  if (!r) { el.textContent = '—'; return; }
+  const v = Number(r[el.dataset.field]);
+  el.textContent = (v > 0 ? '+' : v < 0 ? '−' : '±') + d3.format(el.dataset.p || '.1f')(Math.abs(v)) + (el.dataset.unit || '');
+  if (v !== 0) el.classList.add((el.dataset.good === 'up' ? v > 0 : v < 0) ? 'ce-good' : 'ce-bad');
+});
+dash.draw('sitepick', (sel) => {
+  const g = dash.data('sites');
+  const names = g.status === 'ok' ? g.data.map((d) => d.site) : [];
+  sel.replaceChildren(new Option('All sites', 'All sites'), ...names.map((n) => new Option(n, n)));
+  sel.value = CE.site;
+  sel.onchange = () => { CE.site = sel.value; dash.draw('sitepick'); dash.draw('pmtrend'); dash.draw('woflow'); };
+});
+</script>
+
+<script>
+// ---- PM compliance line chart ----
+dash.draw('pmtrend', (el) => {
+  if (!CE.ready(el, ['trend'])) return;
+  const rows = dash.data('trend').data.filter((d) => d.site === CE.site);
+  const T = CE.TARGET;
+  const series = [{ name: 'On-time PM', key: 'pm_pct', color: dash.colors[0] }, { name: 'Life-support PM', key: 'ls_pct', color: dash.colors[1] }];
+  const W = Math.max(300, el.clientWidth), H = 240, m = { t: 14, r: 118, b: 26, l: 8 };
+  const svg = d3.select(el).append('svg').attr('class', 'ce-svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+  const vals = rows.flatMap((d) => series.map((s) => d[s.key])).concat([T.pm, 100]);
+  const y = d3.scaleLinear([Math.floor(d3.min(vals) - 1), 100.5], [H - m.b, m.t]);
+  const ticks = y.ticks(5);
+  const probe = svg.append('text').text('100%'); m.l = probe.node().getComputedTextLength() + 10; probe.remove();
+  const lastR = rows[rows.length - 1];
+  const widest = d3.max(series, (s) => { const p = svg.append('text').attr('class', 'ce-lab').text(s.name + ' ' + CE.f.pct1(lastR[s.key])); const w = p.node().getComputedTextLength(); p.remove(); return w; });
+  m.r = widest + 16;
+  const x = d3.scalePoint(rows.map((d) => d.month), [m.l + 6, W - m.r]);
+  svg.append('g').selectAll('line').data(ticks).join('line').attr('class', 'ce-gridl').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y).attr('y2', y);
+  svg.append('g').selectAll('text').data(ticks).join('text').attr('x', m.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').text((d) => d + '%');
+  const step = W < 520 ? 3 : 2;
+  svg.append('g').selectAll('text').data(rows.filter((d, i) => i % step === (rows.length - 1) % step)).join('text').attr('x', (d) => x(d.month)).attr('y', H - 6).attr('text-anchor', 'middle').text((d) => CE.mlabel(d.month));
+  svg.append('line').attr('class', 'ce-ref').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(T.pm)).attr('y2', y(T.pm));
+  svg.append('text').attr('x', m.l + 4).attr('y', y(T.pm) - 5).text('Target ' + T.pm + '%');
+  const line = (k) => d3.line().x((d) => x(d.month)).y((d) => y(d[k]));
+  for (const s of series) svg.append('path').attr('d', line(s.key)(rows)).attr('fill', 'none').attr('stroke', s.color).attr('stroke-width', 2).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+  // end labels, kept apart
+  const lastRow = rows[rows.length - 1];
+  const labs = series.map((s) => ({ s, y: y(lastRow[s.key]) })).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 14) labs[i].y = labs[i - 1].y + 14;
+  for (const l of labs) {
+    svg.append('circle').attr('cx', x(lastRow.month)).attr('cy', y(lastRow[l.s.key])).attr('r', 3).attr('fill', l.s.color);
+    svg.append('text').attr('class', 'ce-lab').attr('x', x(lastRow.month) + 8).attr('y', l.y + 4).text(l.s.name + ' ' + CE.f.pct1(lastRow[l.s.key]));
+  }
+  // hover
+  const tip = CE.tip(el);
+  const rule = svg.append('line').attr('class', 'ce-axis').attr('y1', m.t).attr('y2', H - m.b).style('opacity', 0);
+  const dots = series.map((s) => svg.append('circle').attr('r', 4).attr('fill', s.color).style('opacity', 0));
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.r - m.l).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('pointermove', (ev) => {
+      const [px] = d3.pointer(ev);
+      const d = rows.reduce((a, b) => (Math.abs(x(b.month) - px) < Math.abs(x(a.month) - px) ? b : a));
+      rule.attr('x1', x(d.month)).attr('x2', x(d.month)).style('opacity', 1);
+      series.forEach((s, i) => dots[i].attr('cx', x(d.month)).attr('cy', y(d[s.key])).style('opacity', 1));
+      const scale = el.clientWidth / W;
+      tip.show(x(d.month) * scale, y(d.pm_pct) * scale, CE.mlong(d.month) + ' · ' + CE.site, series.map((s) => [s.name, CE.f.pct1(d[s.key]), s.color]));
+    })
+    .on('pointerleave', () => { tip.hide(); rule.style('opacity', 0); dots.forEach((c) => c.style('opacity', 0)); });
+});
+
+// ---- Corrective work-order flow ----
+dash.draw('woflow', (el) => {
+  if (!CE.ready(el, ['trend'])) return;
+  const rows = dash.data('trend').data.filter((d) => d.site === CE.site);
+  const W = Math.max(300, el.clientWidth), H = 240, m = { t: 14, r: 44, b: 26, l: 8 };
+  const svg = d3.select(el).append('svg').attr('class', 'ce-svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+  const y = d3.scaleLinear([0, d3.max(rows, (d) => Math.max(d.opened, d.closed)) * 1.1], [H - m.b, m.t]).nice();
+  const y2 = d3.scaleLinear([0, d3.max(rows, (d) => d.backlog) * 1.25], [H - m.b, m.t]).nice();
+  const ticks = y.ticks(4), ticks2 = y2.ticks(4);
+  { const p = svg.append('text').text(d3.format(',')(d3.max(ticks2))); m.r = p.node().getComputedTextLength() + 12; p.remove(); }
+  const probe = svg.append('text').text(d3.format(',')(d3.max(ticks))); m.l = probe.node().getComputedTextLength() + 10; probe.remove();
+  const x = d3.scaleBand(rows.map((d) => d.month), [m.l, W - m.r]).padding(0.25);
+  const xi = d3.scaleBand(['opened', 'closed'], [0, x.bandwidth()]).padding(0.08);
+  svg.append('g').selectAll('line').data(ticks).join('line').attr('class', 'ce-gridl').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y).attr('y2', y);
+  svg.append('g').selectAll('text').data(ticks).join('text').attr('x', m.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').text(d3.format(','));
+  svg.append('g').selectAll('text').data(ticks2).join('text').attr('x', W - m.r + 6).attr('y', (d) => y2(d) + 4).text(d3.format(','));
+  const step = W < 520 ? 3 : 2;
+  svg.append('g').selectAll('text').data(rows.filter((d, i) => i % step === (rows.length - 1) % step)).join('text').attr('x', (d) => x(d.month) + x.bandwidth() / 2).attr('y', H - 6).attr('text-anchor', 'middle').text((d) => CE.mlabel(d.month));
+  const g = svg.append('g').selectAll('g').data(rows).join('g').attr('transform', (d) => `translate(${x(d.month)},0)`);
+  const bw = Math.min(16, xi.bandwidth());
+  g.append('rect').attr('x', xi('opened') + (xi.bandwidth() - bw) / 2).attr('width', bw).attr('y', (d) => y(d.opened)).attr('height', (d) => y(0) - y(d.opened)).attr('rx', 2).style('fill', 'var(--cds-chart-muted)');
+  g.append('rect').attr('x', xi('closed') + (xi.bandwidth() - bw) / 2).attr('width', bw).attr('y', (d) => y(d.closed)).attr('height', (d) => y(0) - y(d.closed)).attr('rx', 2).attr('fill', dash.colors[0]);
+  svg.append('line').attr('class', 'ce-axis').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(0)).attr('y2', y(0));
+  const cx = (d) => x(d.month) + x.bandwidth() / 2;
+  svg.append('path').attr('d', d3.line().x(cx).y((d) => y2(d.backlog))(rows)).attr('fill', 'none').attr('stroke', dash.colors[1]).attr('stroke-width', 2).attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+  svg.append('g').selectAll('circle').data(rows).join('circle').attr('cx', cx).attr('cy', (d) => y2(d.backlog)).attr('r', 2.5).attr('fill', dash.colors[1]);
+  const tip = CE.tip(el);
+  svg.append('g').selectAll('rect').data(rows).join('rect').attr('x', (d) => x(d.month) - x.step() * x.paddingInner() / 2).attr('width', x.step()).attr('y', m.t).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('pointermove', (ev, d) => {
+      const scale = el.clientWidth / W;
+      tip.show(cx(d) * scale, y(d.opened) * scale, CE.mlong(d.month) + ' · ' + CE.site, [['Opened', CE.f.int(d.opened), 'var(--cds-chart-muted)'], ['Closed', CE.f.int(d.closed), dash.colors[0]], ['Open backlog', CE.f.int(d.backlog), dash.colors[1]]]);
+    })
+    .on('pointerleave', () => tip.hide());
+});
+</script>
+
+<script>
+// ---- Tables and bars ----
+(function () {
+  for (const th of document.querySelectorAll('.ce-score th[data-field]')) {
+    th.addEventListener('click', () => {
+      const f = th.dataset.field;
+      CE.sort = { field: f, dir: CE.sort.field === f ? -CE.sort.dir : 1 };
+      for (const o of document.querySelectorAll('.ce-score th[data-field]')) o.removeAttribute('aria-sort');
+      th.setAttribute('aria-sort', CE.sort.dir === 1 ? 'ascending' : 'descending');
+      dash.draw('scorecard');
+    });
+  }
+})();
+
+dash.draw('scorecard', (tb) => {
+  tb.replaceChildren();
+  const g = dash.data('sites'); if (g.status !== 'ok') return;
+  const T = CE.TARGET, { field, dir } = CE.sort;
+  const rows = [...g.data].sort((a, b) => (typeof a[field] === 'string' ? a[field].localeCompare(b[field]) : a[field] - b[field]) * dir);
+  const cls = {
+    pm_pct: (v) => (v >= T.pm ? 'ce-okc' : v >= T.pm - 1 ? 'ce-warn' : 'ce-bad'),
+    ls_pct: (v) => (v >= T.ls ? 'ce-okc' : 'ce-bad'),
+    up_pct: (v) => (v >= T.up ? 'ce-okc' : 'ce-warn'),
+    cosr_pct: (v) => (v > T.cosrHi ? 'ce-bad' : v > T.cosrHi - 1 ? 'ce-warn' : 'ce-okc')
+  };
+  const fmt = { site: CE.f.text, assets: CE.f.int, pm_pct: CE.f.pct1, ls_pct: CE.f.pct1, up_pct: CE.f.pct2, tat_hrs: CE.f.hrs, repeat_pct: CE.f.pct1, backlog: CE.f.int, cosr_pct: CE.f.pct2 };
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+    for (const k of Object.keys(fmt)) {
+      const td = document.createElement('td'); td.textContent = fmt[k](r[k]);
+      if (cls[k]) td.className = cls[k];
+      tr.append(td);
+    }
+    tb.append(tr);
+  }
+});
+
+dash.draw('captable', (tb) => {
+  tb.replaceChildren();
+  const g = dash.data('capital'); if (g.status !== 'ok') return;
+  for (const r of g.data.slice(0, 15)) {
+    const tr = document.createElement('tr');
+    const cells = [
+      [r.asset_id, 'l'], [r.device_class, 'l'], [r.site, 'l'], [r.life_pct + '%', r.life_pct >= 100 ? 'ce-bad' : ''],
+      [String(r.condition), r.condition <= 2 ? 'ce-bad' : ''], [String(r.fails_12m), ''], [r.end_of_support, r.end_of_support === 'Yes' ? 'ce-bad' : ''],
+      [r.svc_ratio_pct + '%', r.svc_ratio_pct > 50 ? 'ce-warn' : ''], [CE.f.money0(r.replacement_cost), ''], [String(r.risk_score), r.risk_score >= CE.TARGET.risk ? 'ce-bad' : ''], [r.plan_year, '']
+    ];
+    for (const [t, c] of cells) { const td = document.createElement('td'); td.textContent = t; if (c) td.className = c; tr.append(td); }
+    tb.append(tr);
+  }
+});
+
+dash.draw('cosrbars', (el) => {
+  if (!CE.ready(el, ['sites', 'kpi'])) return;
+  const T = CE.TARGET, sys = CE.row('kpi').cosr_pct;
+  const rows = [...dash.data('sites').data].sort((a, b) => b.cosr_pct - a.cosr_pct).map((d) => ({
+    label: d.site, value: d.cosr_pct, text: CE.f.pct2(d.cosr_pct),
+    color: d.cosr_pct > T.cosrHi ? 'var(--cds-chart-status-critical)' : d.cosr_pct > sys ? dash.colors[0] : 'var(--cds-chart-muted)'
+  }));
+  CE.hbars(el, rows, { max: Math.max(T.cosrHi + 1, d3.max(rows, (r) => r.value) * 1.1), band: [T.cosrLo, T.cosrHi], ref: sys });
+});
+
+dash.draw('repbars', (el) => {
+  if (!CE.ready(el, ['sites'])) return;
+  const d = dash.data('sites').data, top = d3.max(d, (r) => r.repeat_pct);
+  CE.hbars(el, [...d].sort((a, b) => b.repeat_pct - a.repeat_pct).map((r) => ({ label: r.site, value: r.repeat_pct, text: CE.f.pct1(r.repeat_pct), color: r.repeat_pct === top ? dash.colors[0] : 'var(--cds-chart-muted)' })));
+});
+
+dash.draw('capyears', (el) => {
+  if (!CE.ready(el, ['capyears'])) return;
+  const d = dash.data('capyears').data;
+  CE.hbars(el, d.map((r, i) => ({ label: r.year + ' · ' + CE.f.int(r.assets) + ' assets · ' + CE.f.int(r.eos) + ' past end-of-support', value: r.cost, text: CE.f.money(r.cost), color: i === 0 ? 'var(--cds-chart-status-critical)' : dash.colors[0] })));
+});
+
+dash.draw('dqbars', (el) => {
+  if (!CE.ready(el, ['dqsum'])) return;
+  const d = dash.data('dqsum').data;
+  CE.hbars(el, d.map((r, i) => ({ label: r.issue, value: r.records, text: CE.f.int(r.records) + ' · ' + d3.format('.2f')(r.per100) + ' per 100', color: i === 0 ? dash.colors[0] : 'var(--cds-chart-muted)' })));
+});
+
+dash.draw('dqsitebars', (el) => {
+  if (!CE.ready(el, ['dqsite'])) return;
+  const d = dash.data('dqsite').data;
+  CE.hbars(el, d.map((r, i) => ({ label: r.site, value: r.per100, text: d3.format('.1f')(r.per100) + ' (' + CE.f.int(r.records) + ' records)', color: i === 0 ? dash.colors[0] : 'var(--cds-chart-muted)' })));
+});
+
+// ---- Capital risk scatter ----
+dash.draw('capscatter', (el) => {
+  if (!CE.ready(el, ['capital'])) return;
+  const rows = dash.data('capital').data, T = CE.TARGET;
+  const W = Math.max(300, el.clientWidth), H = 320, m = { t: 14, r: 26, b: 38, l: 36 };
+  const svg = d3.select(el).append('svg').attr('class', 'ce-svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+  const x = d3.scaleLinear([40, Math.max(160, d3.max(rows, (d) => d.life_pct) + 5)], [m.l, W - m.r]);
+  const y = d3.scaleLinear([0, 100], [H - m.b, m.t]);
+  const r = d3.scaleSqrt(d3.extent(rows, (d) => d.replacement_cost), [2.5, 13]);
+  svg.append('g').selectAll('line').data(y.ticks(5)).join('line').attr('class', 'ce-gridl').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y).attr('y2', y);
+  svg.append('g').selectAll('text').data(y.ticks(5)).join('text').attr('x', m.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').text((d) => d);
+  svg.append('g').selectAll('text').data(x.ticks(W < 520 ? 4 : 6)).join('text').attr('x', x).attr('y', H - m.b + 16).attr('text-anchor', (d, i, n) => (i === n.length - 1 ? 'end' : 'middle')).text((d) => d + '%');
+  svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 4).attr('text-anchor', 'middle').text('Expected life used');
+  svg.append('line').attr('class', 'ce-ref').attr('x1', x(100)).attr('x2', x(100)).attr('y1', m.t).attr('y2', H - m.b);
+  svg.append('line').attr('class', 'ce-ref').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(T.risk)).attr('y2', y(T.risk));
+  svg.append('text').attr('x', x(100) + 4).attr('y', H - m.b - 6).text('End of expected life');
+  svg.append('text').attr('x', m.l + 4).attr('y', y(T.risk) - 5).text('Risk ' + T.risk);
+  const crit = 'var(--cds-chart-status-critical)';
+  const sorted = [...rows].sort((a, b) => b.replacement_cost - a.replacement_cost);
+  const dots = svg.append('g').selectAll('circle').data(sorted).join('circle')
+    .attr('cx', (d) => x(d.life_pct)).attr('cy', (d) => y(d.risk_score)).attr('r', (d) => r(d.replacement_cost))
+    .style('fill', (d) => (d.risk_score >= T.risk ? crit : dash.colors[0])).style('fill-opacity', (d) => (d.risk_score >= T.risk ? 0.75 : 0.35))
+    .style('stroke', (d) => (d.risk_score >= T.risk ? crit : dash.colors[0])).style('stroke-width', 1);
+  const tip = CE.tip(el);
+  const delaunay = d3.Delaunay.from(rows, (d) => x(d.life_pct), (d) => y(d.risk_score));
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('pointermove', (ev) => {
+      const [px, py] = d3.pointer(ev); const d = rows[delaunay.find(px, py)];
+      dots.style('stroke-width', (o) => (o === d ? 2.5 : 1));
+      const scale = el.clientWidth / W;
+      tip.show(x(d.life_pct) * scale, y(d.risk_score) * scale, d.asset_id + ' · ' + d.device_class, [['Site', d.site], ['Age / expected life', d.age_yrs + ' / ' + d.expected_life + ' yrs'], ['Risk score', String(d.risk_score)], ['Replacement', CE.f.money0(d.replacement_cost)], ['Plan year', d.plan_year]]);
+    })
+    .on('pointerleave', () => { tip.hide(); dots.style('stroke-width', 1); });
+});
+</script>
+
+</div>
+</body></html>
